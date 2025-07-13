@@ -1,84 +1,153 @@
-#Set working directory
-   
+#Set working directory####
+  #if on laptop
+  setwd("C:/Users/Ashley/Documents/URI/Webb Lab/Photophore MS/R")
+  #if on work pc
+    #setwd("C:/Users/am4726/OneDrive - Nova Southeastern University/PhotophoreMS_Data_CPK")
+  #if on NOAA laptop:
+    #setwd("C:/Users/ashley.marranzino/Documents/Photophore_MS_Ashley/R")
+
+  
 ### Load packages ####
 if(!require('ggplot2'))install.packages('ggplot2'); library('ggplot2')
 if(!require('tidyverse'))install.packages('tidyverse'); library('tidyverse') 
 if(!require('broom'))install.packages('broom'); library('broom')
 if(!require('xlsx'))install.packages('xlsx'); library('xlsx')
-if(!require("wesanderson"))install.packages('wesanderson');library("wesanderson")
+#if(!require("wesanderson"))install.packages('wesanderson');library("wesanderson")
 if(!require("lemon"))install.packages("lemon"); library("lemon")
 if(!require("ggpubr"))install.packages("ggpubr"); library("ggpubr")
-    if(!require("gridExtra"))install.packages("gridExtra"); library("gridExtra")
-    if(!require("patchwork"))install.packages("patchwork"); library("patchwork")
-    if(!require("RColorBrewer"))install.packages("RColorBrewer"); library("RColorBrewer")
+if(!require("gridExtra"))install.packages("gridExtra"); library("gridExtra")
+if(!require("patchwork"))install.packages("patchwork"); library("patchwork")
+if(!require("RColorBrewer"))install.packages("RColorBrewer"); library("RColorBrewer")
 
 ### Read in .csv ####
 
 photo<-read.csv("photophore_clean-NSU.csv", col.names = (c("species", "specimen","id", "region", "catalog", "SL", "image_area", "x","y","direction", "diameter", "angle", "type", "diameter_SL")))%>%
-  mutate(species = as.factor(species), specimen = as.factor(specimen), id = as.factor(id), region = as.factor(region), 
-         catalog = as.factor(catalog),direction = as.factor(direction), type = as.factor(type))%>%
-  mutate(id = as.factor(paste0(specimen,"_", region)))%>%
-  ## change units for diameter from mm(normal in dataframe) to micron by multiplying by 1000 --- change made 9.2.2022
-    mutate(diameter = diameter*1000)%>%
-    mutate(diameter_SL = diameter/SL)%>%                   
-    ## change units for image_area from mm2 to cm2 by dividing by 100 --- change made 9.2.2022
-    mutate(image_area = image_area/100)%>%
-  mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))%>%
-    mutate(type=fct_relevel(type,c("serial", "minute")))%>%
-  mutate (region = recode (region, R1 = "rostral", R2 = "mid", R3 = "caudal"))%>%
-  unite("typereg", c(region,type), remove= F, sep = ".")
+  mutate(species = as.factor(species), 
+         specimen = as.factor(specimen), 
+         id = as.factor(paste0(specimen,"_", region)), 
+         region = as.factor(region), 
+         catalog = as.factor(catalog),
+         direction = as.factor(direction), 
+         type = as.factor(type), 
+         diameter = diameter*1000,## change units for diameter from mm(normal in dataframe) to micron by multiplying by 1000 
+         diameter_SL = diameter/SL, #diameter of photophores (in micrometer) standardized by dividing by fish standard length (in mm)
+         image_area = image_area/100, ## change units for image_area from mm2 to cm2 by dividing by 100,
+         photo_area_mm2 = (pi* (diameter/2)^2)/10000, #calculate the area of each photophore, report as mm2 (converted from micrometer2)
+         photo_area_mmSL = photo_area_mm2/SL,#calculate standardized photophore area (mm2/mmSL) by dividing photophore area (mm2) by fish standard length (mm)
+         species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")), #rearrange order of the species to show up in proper phylogentic order
+         type=fct_relevel(type,c("serial", "minute")), #reorder the factor levels for photophore type
+         region = recode (region, R1 = "rostral", R2 = "mid", R3 = "caudal"))%>%  #rename the regions to reflect body placement
+    unite("typereg", c(region,type), remove= F, sep = ".")
 
 
 ### ~ Make Summary dataframes ####
-  # make a summary table based on each specimen for individual regions (df = summary)###
+  # make a summary dataframe summarizing data for a single specimen, grouped by region (df name = summary)###
 summary <- photo%>%
-  dplyr::group_by(id)%>%
-  summarize(SL = mean(SL), n = n(), avg_size = mean(diameter), min_size = min(diameter), max_size = max(diameter), sd_size = sd(diameter), 
-            image_area = mean(image_area), avg_angle = mean(angle, na.rm=T), min_angle = min(angle), max_angle = max(angle), sd_angle = sd(angle))%>%
-  mutate(density = n/image_area)%>%
+  dplyr::group_by(id)%>% ##ID is unique for each region on a specimen
+  summarize(SL = mean(SL), 
+            n = n(), #n will report number of photophores
+            avg_size = mean(diameter), #in micrometer
+            min_size = min(diameter),  #in micrometer
+            max_size = max(diameter), #in micrometer
+            sd_size = sd(diameter), 
+            image_area = mean(image_area), #in cm2
+            avg_angle = mean(angle, na.rm=T), #in degrees
+            min_angle = min(angle), #in degrees
+            max_angle = max(angle), #in degrees
+            sd_angle = sd(angle), 
+            photo_area_mm2_mean = mean(photo_area_mm2), #average area of photophores, in mm2
+            photo_area_mm2_tot = sum(photo_area_mm2), #sum of area of photophores in mm2
+            photo_area_mmSL = mean(photo_area_mmSL), # in mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
+            photo_area_mmSL_tot = sum(photo_area_mmSL))%>% #in mm2/mm - sum of area of all photophores (mm2) standardized by fish SL (mm)
+  mutate(density = n/image_area)%>% #calculate density (# of photophores/cm2)
   as.data.frame()%>%
-  mutate(species = as.factor(str_sub(id,0,-5)), specimen = as.factor (str_sub(id, 0, -4)), region = as.factor(str_sub(id,-2)))%>%     #remake the species and region cols that were lost during summarize function    
-  mutate (region = recode (region, R1 = "rostral", R2 = "mid", R3 = "caudal"))%>%  
- ##reorder for phylogenetic arrangement
-  mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
-
+  mutate(species = as.factor(str_sub(id,0,-5)), 
+         specimen = as.factor (str_sub(id, 0, -4)), 
+         region = as.factor(str_sub(id,-2)),  #remake the species and region cols that were lost during summarize function    
+         region = recode (region, R1 = "rostral", R2 = "mid", R3 = "caudal"), #rename regions to reflect body placement
+         species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))%>% #reorder species to place them in proper phylogenetic order
+  relocate(c(species, specimen, region), .before= id )
+ 
  ## save to an excel file - starts the .xls file and subsequent data is saved as new tabs
   write.xlsx(summary, file = "Photo_Data.xls", sheetName = "summary_lumped", row.names = F, append = F)    
   
   
-### Make summary dataframe separating the minute and serial photophores for each individual for each region (df = photo_summary) ###
+### make a summary dataframe summarizing data in the master dataframe (df = photo) for a single specimen, grouped by region and type of photophore (df name = photo_summary) ###
+  
 photo_summary <- photo%>%
   dplyr:: group_by(id, type)%>%
-  summarize( SL = mean(SL), n = n(), avg_size = mean(diameter), min_size = min(diameter), max_size = max(diameter), sd_size = sd(diameter),
-             avg_sizeSL=mean(diameter_SL),sd_sizeSL=sd(diameter_SL),image_area = mean(image_area), avg_angle = mean(angle, na.rm = T), 
-             min_angle = min(angle), max_angle = max(angle), sd_angle = sd(angle))%>%
-  mutate(density = n/image_area)%>%
+  summarize( SL = mean(SL), #in mm
+             n = n(), #number of photophores
+             avg_size = mean(diameter), #Average size of photophores (diameter) in micrometers
+             min_size = min(diameter), #Minimum size of photophores (diameter) in micrometers
+             max_size = max(diameter), #Maximum size of photohpores (diameter) in micrometers
+             sd_size = sd(diameter), #Standard deviation of photophore diameter
+             avg_sizeSL= mean(diameter_SL), #Average size of specimen (standard length, in mm)
+             sd_sizeSL= sd(diameter_SL), #Standard deviation of specimen SL 
+             image_area = mean(image_area), #area imaged (cm2)
+             avg_angle = mean(angle, na.rm = T), #Average angle of orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+             min_angle = min(angle), #minimum angle of orientation(degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+             max_angle = max(angle), #maximum angle of orientation(degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+             sd_angle = sd(angle), #standard deviation of angles of orientation
+             photo_area_mm2_mean = mean(photo_area_mm2), #average photophore area (mm2)
+             photo_area_mm2_tot = sum(photo_area_mm2), #sum of photophore areas (mm2)
+             photo_area_mmSL_mean = mean(photo_area_mmSL), #avearge photophore area standardized for fish SL (mm2/mm)
+             photo_area_mmSL_tot = sum(photo_area_mmSL))%>% #sum of average photophore area stantardized for fish SL (mm2/mm)
+  mutate(density = n/image_area)%>% #calculate density - number of photophores/cm2
   as.data.frame()%>%
-  mutate(species = as.factor(str_sub(id,0,-5)), specimen = as.factor (str_sub(id, 0, -4)), region = as.factor(str_sub(id,-2)))%>%     #remake the species and region cols that were lost during summarize function
-  mutate (region = recode (region, R1 = "rostral", R2 = "mid", R3 = "caudal"))%>%
-  ##reorder for phylogenetic arrangement
-  mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))%>%
-  unite("typereg", c(region,type), remove= F, sep = ".")
+  mutate(species = as.factor(str_sub(id,0,-5)), 
+         specimen = as.factor (str_sub(id, 0, -4)), 
+         region = as.factor(str_sub(id,-2)),#remake the species and region cols that were lost during summarize function
+         region = recode (region, R1 = "rostral", R2 = "mid", R3 = "caudal"), #rename regions to reflect body placement
+         species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))%>% ##reorder species to place in appropriate phylogenetic arrangement
+  unite("typereg", c(region,type), remove= F, sep = ".")%>%
+  relocate(c(species, specimen, region), .before= id )
   
   # save to the excel file in a new tab
-  write.xlsx(photo_summary, file = "Photo_Data.xls", sheetName = "Phot_sum", row.names = F, append = T)
+  write.xlsx(photo_summary, file = "Photo_Data.xls", sheetName = "Photo_sum", row.names = F, append = T)
 
-### Make summary dataframe based on each species by region  (df = spp_sum) ###
+### make a summary dataframe summarizing data in the master dataframe (df = photo) for each species, grouped by region (df = spp_sum) ###
 spp_sum <- photo%>%
   dplyr::group_by(species, region)%>%
-  summarize (n = n_distinct(specimen), avg_SL = mean(SL), min_SL = min(SL), max_SL=max(SL), sd_SL = sd(SL), avg_size = mean(diameter), 
-             min_size = min(diameter), max_size = max(diameter), sd_size = sd(diameter), avg_angle = mean(angle, na.rm=T), min_angle = min(angle,na.rm=T), 
-             max_angle = max(angle, na.rm = T), sd_angle = sd(angle, na.rm=T))%>%
+  summarize (n = n_distinct(specimen), #n = number of specimens for each species
+             avg_SL = mean(SL), #mean standard length of specimen (mm)
+             min_SL = min(SL), #minimum standard length of specimen (mm)
+             max_SL = max(SL), #maximum standard length of specimen (mm)
+             sd_SL = sd(SL), #standard deviation of specimen standard lengths
+             avg_size = mean(diameter), #average size of photophores (diameter, micrometer)
+             min_size = min(diameter),  #minimum size of photophores (diameter, micrometer)
+             max_size = max(diameter),  #maximum  size of photophores (diameter, micrometer)
+             sd_size = sd(diameter), #standard deviation of photophore size (diameter)
+             avg_angle = mean(angle, na.rm=T), #avearage angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+             min_angle = min(angle,na.rm=T), #minimum angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+             max_angle = max(angle, na.rm = T), #maximum angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+             sd_angle = sd(angle, na.rm=T))%>% #standard deviation of photophore orientations
   as.data.frame()
 
-  temp<- summary%>%                                                           ##calculate summary statistics for density (must be done) from the summary dataframe
+#calculate summary statistics for density and photophore area from the summary dataframe and then merge those with the spp_sum dataframe
+  temp<- summary%>%   
     group_by(species, region)%>%
-    summarize (avg_density = mean(density), min_density = min(density), max_density = max(density), sd_density = sd(density), 
-             avg_photo = mean(n), min_photo = min(n), max_photo = max(n), sd_photo = sd(n))%>%
-   rename(sp = species, r = region)%>%
+    summarize (avg_density = mean(density), #average density of photophores (#/cm2)
+               min_density = min(density), #minimum density of photophores (#/cm2)
+               max_density = max(density), #maximum density of photophores (#/cm2)
+               sd_density = sd(density), #standard deviation of photophore density
+             avg_photo = mean(n), #average number of photophores
+             min_photo = min(n), #minimum number of photophores
+             max_photo = max(n), #maximum number of photophores
+             sd_photo = sd(n), #standard deviation of number of photophores
+             avg_photo_area_mm2_tot = mean(photo_area_mm2_tot), #average total area of photophores (mm2)
+             min_photo_area_mm2_tot = min (photo_area_mm2_tot), #minimum total area of photophores (mm2)
+             max_photo_area_mm2_tot = max(photo_area_mm2_tot), #maximum total area of photophores (mm2)
+             sd_photo_area_mm2 = sd(photo_area_mm2_tot), #standard deviation of the total area of photophores
+             avg_photo_area_mmSL_tot = mean(photo_area_mmSL_tot), #average total area of photophores (mm2) standardized by fish body length (SL, mm)
+             min_photo_aream_mmSL_tot = min(photo_area_mmSL_tot), #minimum total area of photophores (mm2) standardized by fish body length (SL, mm)
+             max_photo_area_mmSL_tot = max (photo_area_mmSL_tot), #maximum total area of photophores (mm2) standardized by fish body length (SL, mm)
+             sd_area_mmSL_tot = sd(photo_area_mmSL_tot))%>% #standard deviation of the total area of photophores (mm2) standardized by fish body length (SL, mm)
+   rename(sp = species, r = region)%>% 
    as.data.frame()
-
-  spp_sum<- cbind(spp_sum, temp)%>%                                                 #combine summary stats with density summary stats into spp_sum dataframe
+  
+ #combine summary stats with density and photophore area details
+  spp_sum<- cbind(spp_sum, temp)%>%                                                
     select(-c(sp, r)) %>%
     ##reorder for phylogenetic arrangement
     mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
@@ -86,186 +155,279 @@ spp_sum <- photo%>%
   # save to excel file in a new tab
   write.xlsx(spp_sum, file = 'Photo_Data.xls', sheetName = "Spp_summary", row.names = F, append = T)
 
-### Make summary dataframe separating the minute and serial photophores for each species (df = photo_spp_summary) ###
-
-  ## make a dataframe to calculate the SL mean/SL 
-    # because each photophore entry has an SL recorded, the SD and means are scewed when using full dataset. This creates a dataframe for just the distinct values and finds the mean, SL for those
+### make a summary dataframe summarizing data in the master dataframe (df = photo) for each species, grouped by region and photophore type (df = spp_sum) ### 
+  
+  ## first make a dataframe to calculate the SL mean, min, max, and standard deviation because each photophore entry has an SL recorded, the SD and means are scewed when using full dataset. So create a dataframe for just the distinct values and find the mean, SL for those
 
 spp_SL<- photo%>% 
   dplyr:: group_by(species, region, type)%>%
   distinct(SL)%>%
-  summarize(avg_SL = mean(SL), sd_SL = sd(SL), min_SL = min(SL), max_SL=max(SL))%>%
+  summarize(avg_SL = mean(SL), #average standard length (mm) for specimens within each species
+            sd_SL = sd(SL), #standard deviation of standard lengths (mm)
+            min_SL = min(SL), #minimum standard length (mm)
+            max_SL=max(SL))%>% #maximum standard length (mm)
   as.data.frame() 
 
-  ## make the summary stats for other columns in the photo dataframe
+  ## make the summary stats for other columns based on the master dataframe (df = photo)
   photo_spp_summary<- photo%>%
     dplyr:: group_by(species, region, type)%>%
-    summarize (n = n_distinct(specimen), avg_size = mean(diameter), min_size = min(diameter), max_size = max(diameter), 
-             sd_size = sd(diameter),avg_sizeSL = mean(diameter_SL), sd_sizeSL = sd(diameter_SL),avg_angle = mean(angle, na.rm=T), 
-             min_angle = min(angle,na.rm=T), max_angle = max(angle, na.rm = T), sd_angle = sd(angle, na.rm=T))%>%
+    summarize (n = n_distinct(specimen), #number of specimens
+               avg_size = mean(diameter), #average photophore size (diameter, micrometer)
+               min_size = min(diameter),  #minimum photophore size (diameter, micrometer)
+               max_size = max(diameter),  #maximum photophore size (diameter, micrometer)
+               sd_size = sd(diameter), #standard deviation of photophore sizes (diameter)
+               avg_sizeSL = mean(diameter_SL), #average standardized photophore size (micrometer/mmSL) - photophore diameter (micrometer) divided by specimen standard length (mm)
+               sd_sizeSL = sd(diameter_SL),#standard deviation of standardized photophore size
+               avg_angle = mean(angle, na.rm=T), #avearage angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               min_angle = min(angle,na.rm=T), #minimum angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               max_angle = max(angle, na.rm = T), #maximum angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               sd_angle = sd(angle, na.rm=T))%>% #standard deviation of photophore orientation
     as.data.frame()%>%
     rename(sp= species, r = region, t = type)           #rename so you can remove duplicitive cols
  
     #bind SL data to summary stats
     photo_spp_summary<- cbind(spp_SL,photo_spp_summary)%>%
-    select(-c(sp, r, t))                                #remove duplicitive cols
-  #make summary stats of density from the photo_summary dataframe
+    select(-c(sp, r, t)) #remove duplicitive cols
+    
+  #make summary stats of density and photophore area from the photo_summary dataframe
   temp<- photo_summary%>%
     group_by(species,region,type)%>%
-    summarize (avg_density = mean(density), min_density = min(density), max_density = max(density), sd_density = sd(density), 
-             avg_photo = mean(n), min_photo = min(n), max_photo = max(n), sd_photo = sd(n))%>%
+    summarize (avg_density = mean(density), #average photophore density (#/cm2)
+               min_density = min(density), #minimum photophore density (#/cm2)
+               max_density = max(density), #maximum photophore density (#/cm2)
+               sd_density = sd(density), #standard deviation of photophore density
+               avg_photo = mean(n), #average number of photophores
+               min_photo = min(n), #minimum number of photophores
+               max_photo = max(n), #maximum number of photophores
+               sd_photo = sd(n),
+               avg_photo_area_mm2_tot = mean(photo_area_mm2_tot), #average total area of photophores (mm2)
+               min_photo_area_mm2_tot = min (photo_area_mm2_tot), #minimum total area of photophores (mm2)
+               max_photo_area_mm2_tot = max(photo_area_mm2_tot), #maximum total area of photophores (mm2)
+               sd_photo_area_mm2 = sd(photo_area_mm2_tot), #standard deviation of the total area of photophores
+               avg_photo_area_mmSL_tot = mean(photo_area_mmSL_tot), #average total area of photophores (mm2) standardized by fish body length (SL, mm)
+               min_photo_aream_mmSL_tot = min(photo_area_mmSL_tot), #minimum total area of photophores (mm2) standardized by fish body length (SL, mm)
+               max_photo_area_mmSL_tot = max (photo_area_mmSL_tot), #maximum total area of photophores (mm2) standardized by fish body length (SL, mm)
+               sd_area_mmSL_tot = sd(photo_area_mmSL_tot))%>% #standard deviation of the total area of photophores (mm2) standardized by fish body length (SL, mm) 
     rename(sp = species, r = region, t = type)%>%
     as.data.frame()
+  
   #add density data to photo_spp_summary dataframe
-  photo_spp_summary<- cbind(photo_spp_summary, temp)%>%                                              #combine summary stats with density summary stats into spp_sum dataframe
-  select(-c(sp, r, t))%>%
-  ##reorder for phylogenetic arrangement
-  mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))%>%
+  photo_spp_summary<- cbind(photo_spp_summary, temp)%>%
+    select(-c(sp, r, t))%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))%>% #reorder species to approriate phylogenetic order
   unite("typereg", c(region,type), remove= F, sep = ".")
 
   # write to .xls file as new tab
   write.xlsx(photo_spp_summary, file = 'Photo_Data.xls', sheetName = "PhotoSpp_summary", row.names = F, append = T)
 
 
- ## ~ Make Subset dataframes  ####
+#### ~ Make Subset dataframes for plotting ####
 
-## Make a dataframe with ONLY the rostral data ##
+## Make a dataframe with ONLY the data for the rostral regions ##
 rostral<-photo%>%
-   filter(region=="rostral")%>%
-   select(-c(x,y,direction, catalog))%>%
-  ##reorder for phylogenetic arrangement
-  mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
+    filter(region=="rostral")%>%
+    select(-c(x,y,direction, catalog))%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))##reorder for phylogenetic arrangement
 
- ## Make a summary dataframe for each specimen data
-rostral.summary <- rostral%>%
-   dplyr::group_by(id, type)%>%
-   summarize(SL = mean(SL), n = n(), avg_size = mean(diameter), sd_size = sd(diameter),
-             avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-             image_area = mean(image_area), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle))%>%
-   mutate(density = n/image_area)%>%
-   as.data.frame()%>%
-   mutate(species = as.factor(str_sub(id,0,-5)), specimen = as.factor (str_sub(id, 0, -4)), region = as.factor(str_sub(id,-2)))%>%     #remake the species and region cols   that were lost during summarize function
-   ##reorder for phylogenetic arrangement
-   mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
- 
- ### Make summary table for each SPECIES
- rostral.spp_sum <- rostral%>%
+ ## Make a summary dataframe for each specimen data in rostral region only 
+rostral_summary <- rostral%>%
+  dplyr::group_by(id, type)%>%
+  summarize( SL = mean(SL), #in mm
+             n = n(), #number of photophores
+             avg_size = mean(diameter), #Average size of photophores (diameter) in micrometers
+             sd_size = sd(diameter), #Standard deviation of photophore diameter
+             avg_sizeSL= mean(diameter_SL), #Average size of specimen (standard length, in mm)
+             sd_sizeSL= sd(diameter_SL), #Standard deviation of specimen SL 
+             image_area = mean(image_area), #area imaged (cm2)
+             avg_angle = mean(angle, na.rm = T), #Average angle of orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+             sd_angle = sd(angle), #standard deviation of angles of orientation
+             photo_area_mm2_mean = mean(photo_area_mm2), #average photophore area (mm2)
+             photo_area_mm2_tot = sum(photo_area_mm2), #sum of photophore areas (mm2)
+             photo_area_mmSL_mean = mean(photo_area_mmSL), #average photophore area standardized for fish SL (mm2/mm)
+             photo_area_mmSL_tot = sum(photo_area_mmSL))%>% #sum of average photophore area standardized for fish SL (mm2/mm)
+  mutate(density = n/image_area)%>% #calculate density - number of photophores/cm2
+  as.data.frame()%>%
+  mutate(species = as.factor(str_sub(id,0,-5)), 
+         specimen = as.factor (str_sub(id, 0, -4)), 
+         region = as.factor(str_sub(id,-2)))%>%
+  relocate(c(species, specimen, region), .before= id )
+  
+   
+ ### Make summary table for rostral data, collating data for each species and type of photophore
+ rostral_spp_sum <- rostral%>%
    dplyr::group_by(species, type)%>%
-   summarize (n = n_distinct(specimen), avg_SL = mean(SL), sd_SL = sd(SL), avg_size = mean(diameter), 
-              avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-              sd_size = sd(diameter), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle, na.rm=T))%>%
-   as.data.frame()
+   summarize (n = n_distinct(specimen), #number of specimens
+               avg_size = mean(diameter), #average photophore size (diameter, micrometer)
+               sd_size = sd(diameter), #standard deviation of photophore sizes (diameter)
+               avg_sizeSL = mean(diameter_SL), #average standardized photophore size (micrometer/mmSL) - photophore diameter (micrometer) divided by specimen standard length (mm)
+               sd_sizeSL = sd(diameter_SL),#standard deviation of standardized photophore size
+               avg_angle = mean(angle, na.rm=T), #avearage angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               sd_angle = sd(angle, na.rm=T))%>% #standard deviation of photophore orientation
+    as.data.frame()
  
-  temp<- rostral.summary%>%                                                           ##calculate summary statistics for density (must be done) from the summary dataframe
-   group_by(species, type)%>%
-   summarize (avg_density = mean(density), sd_density = sd(density), 
-              avg_n = mean(n), sd_n = sd(n))%>%
-   rename(sp = species, t = type)%>%
-   as.data.frame()
- 
-  rostral.spp_sum<- cbind(rostral.spp_sum, temp)%>%
-   select(-sp, -t)%>%
-   ##reorder for phylogenetic arrangement
-   mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
- 
+  #make summary stats of density and photophore area from the rostral_summary dataframe
+  temp<- rostral_summary%>%
+    group_by(species, type)%>%
+    summarize (avg_density = mean(density), #average photophore density (#/cm2)
+               sd_density = sd(density), #standard deviation of photophore density
+               avg_photo = mean(n), #average number of photophores
+               sd_photo = sd(n),
+               avg_photo_area_mm2_tot = mean(photo_area_mm2_tot), #average total area of photophores (mm2)
+               sd_photo_area_mm2 = sd(photo_area_mm2_tot), #standard deviation of the total area of photophores
+               avg_photo_area_mmSL_tot = mean(photo_area_mmSL_tot), #average total area of photophores (mm2) standardized by fish body length (SL, mm)
+               sd_area_mmSL_tot = sd(photo_area_mmSL_tot))%>% #standard deviation of the total area of photophores (mm2) standardized by fish body length (SL, mm) 
+    rename(sp = species, t = type)%>%
+    as.data.frame()
+  
+  #add density data to photo_spp_summary dataframe
+  rostral_spp_sum<- cbind(rostral_spp_sum, temp)%>%
+    select(-c(sp, t))%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic"))) #reorder species to appropriate phylogenetic order
+  
   #save to .xlsx file in a new tab
-  write.xlsx(rostral.spp_sum, file = 'Photo_Data.xls', sheetName = "rostral.Spp_type_summary", row.names = F, append = T)
+  write.xlsx(rostral_spp_sum, file = 'Photo_Data.xls', sheetName = "rostral_spp_type_summary", row.names = F, append = T)
  
-##Make a dataframe with ONLY the mid data###
- mid<-photo%>%
-   filter(region=="mid")%>%
-   select(-c(x,y,direction, catalog))%>%
-   ##reorder for phylogenetic arrangement
-   mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
- 
- ## Make a summary dataframe for each specimen data
- mid.summary <- mid%>%
-   dplyr::group_by(id, type)%>%
-   summarize(SL = mean(SL), n = n(), avg_size = mean(diameter), sd_size = sd(diameter),
-             avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-             image_area = mean(image_area), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle))%>%
-   mutate(density = n/image_area)%>%
-   as.data.frame()%>%
-   mutate(species = as.factor(str_sub(id,0,-5)), specimen = as.factor (str_sub(id, 0, -4)), region = as.factor(str_sub(id,-2)))%>%     #remake the species and region cols that were lost during summarize function
-   ##reorder for phylogenetic arrangement
-   mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
- 
- ### Make summary table for each SPECIES
-mid.spp_sum <- mid%>%
-   dplyr::group_by(species, type)%>%
-   summarize (n = n_distinct(specimen), avg_SL = mean(SL), sd_SL = sd(SL), avg_size = mean(diameter), 
-              avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-             sd_size = sd(diameter), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle, na.rm=T))%>%
-   as.data.frame()
-   
-  temp<- mid.summary%>%                                                           ##calculate summary statistics for density (must be done) from the summary dataframe
-   group_by(species, type)%>%
-   summarize (avg_density = mean(density), sd_density = sd(density), 
-              avg_n = mean(n), sd_n = sd(n))%>%
-   rename(sp = species, t = type)%>%
-   as.data.frame()
-   
-   mid.spp_sum<- cbind(mid.spp_sum, temp)%>%
-   select(-sp, -t)%>%
-    ##reorder for phylogenetic arrangement
-    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
+  ## Make a dataframe with ONLY the data for the mid region ##
+  mid<-photo%>%
+    filter(region=="mid")%>%
+    select(-c(x,y,direction, catalog))%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))##reorder for phylogenetic arrangement
   
-  #save to .xlsx file as a new tab
-  write.xlsx(mid.spp_sum, file = 'Photo_Data.xls', sheetName = "mid.Spp_type_summary", row.names = F, append = T)
- 
-##Make a dataframe with ONLY the caudal data###
-caudal<-photo%>%
-   filter(region=="caudal")%>%
-   select(-c(x,y,direction, catalog))%>%
-   ##reorder for phylogenetic arrangement
-   mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
- 
-## Make a summary dataframe for each specimen data
-caudal.summary <- caudal%>%
-   dplyr::group_by(id, type)%>%
-   summarize(SL = mean(SL), n = n(), avg_size = mean(diameter), sd_size = sd(diameter),
-             avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-             image_area = mean(image_area), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle))%>%
-   mutate(density = n/image_area)%>%
-   as.data.frame()%>%
-   mutate(species = as.factor(str_sub(id,0,-5)), specimen = as.factor (str_sub(id, 0, -4)), region = as.factor(str_sub(id,-2)))%>%     #remake the species and region cols that were lost during summarize function
-   ##reorder for phylogenetic arrangement
-   mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
- 
- ### Make summary table for each SPECIES
-caudal.spp_sum <- caudal%>%
-   dplyr::group_by(species, type)%>%
-   summarize (n = n_distinct(specimen), avg_SL = mean(SL), sd_SL = sd(SL), avg_size = mean(diameter), 
-              avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-              sd_size = sd(diameter), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle, na.rm=T))%>%
-   as.data.frame()
- 
- temp<- caudal.summary%>%                                                           ##calculate summary statistics for density (must be done) from the summary dataframe
-   group_by(species, type)%>%
-   summarize (avg_density = mean(density), sd_density = sd(density), 
-              avg_n = mean(n), sd_n = sd(n))%>%
-   rename(sp = species, t = type)%>%
-   as.data.frame()
- 
-   caudal.spp_sum<- cbind(caudal.spp_sum, temp)%>%
-     select(-sp, -t)%>%
-     ##reorder for phylogenetic arrangement
-     mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))
- 
-  #save to .xlsx file in a new tab 
-  write.xlsx(caudal.spp_sum, file = 'Photo_Data.xls', sheetName = "caudal.Spp_type_summary", row.names = F, append = T)
+  ## Make a summary dataframe for each specimen data in mid region only 
+  mid_summary <- mid%>%
+    dplyr::group_by(id, type)%>%
+    summarize( SL = mean(SL), #in mm
+               n = n(), #number of photophores
+               avg_size = mean(diameter), #Average size of photophores (diameter) in micrometers
+               sd_size = sd(diameter), #Standard deviation of photophore diameter
+               avg_sizeSL= mean(diameter_SL), #Average size of specimen (standard length, in mm)
+               sd_sizeSL= sd(diameter_SL), #Standard deviation of specimen SL 
+               image_area = mean(image_area), #area imaged (cm2)
+               avg_angle = mean(angle, na.rm = T), #Average angle of orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               sd_angle = sd(angle), #standard deviation of angles of orientation
+               photo_area_mm2_mean = mean(photo_area_mm2), #average photophore area (mm2)
+               photo_area_mm2_tot = sum(photo_area_mm2), #sum of photophore areas (mm2)
+               photo_area_mmSL_mean = mean(photo_area_mmSL), #average photophore area standardized for fish SL (mm2/mm)
+               photo_area_mmSL_tot = sum(photo_area_mmSL))%>% #sum of average photophore area standardized for fish SL (mm2/mm)
+    mutate(density = n/image_area)%>% #calculate density - number of photophores/cm2
+    as.data.frame()%>%
+    mutate(species = as.factor(str_sub(id,0,-5)), 
+           specimen = as.factor (str_sub(id, 0, -4)), 
+           region = as.factor(str_sub(id,-2)))%>%
+    relocate(c(species, specimen, region), .before= id )%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Tden", "Lgla", "Mbar", "Bmet", "Pgue", "Pmic")))##reorder for phylogenetic arrangement
 
   
+  
+  ### Make summary table for mid data, collating data for each species and type of photophore
+  mid_spp_sum <- mid%>%
+    dplyr::group_by(species, type)%>%
+    summarize (n = n_distinct(specimen), #number of specimens
+               avg_size = mean(diameter), #average photophore size (diameter, micrometer)
+               sd_size = sd(diameter), #standard deviation of photophore sizes (diameter)
+               avg_sizeSL = mean(diameter_SL), #average standardized photophore size (micrometer/mmSL) - photophore diameter (micrometer) divided by specimen standard length (mm)
+               sd_sizeSL = sd(diameter_SL),#standard deviation of standardized photophore size
+               avg_angle = mean(angle, na.rm=T), #avearage angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               sd_angle = sd(angle, na.rm=T))%>% #standard deviation of photophore orientation
+    as.data.frame()
+  
+  #make summary stats of density and photophore area from the mid_summary dataframe
+  temp<- mid_summary%>%
+    group_by(species, type)%>%
+    summarize (avg_density = mean(density), #average photophore density (#/cm2)
+               sd_density = sd(density), #standard deviation of photophore density
+               avg_photo = mean(n), #average number of photophores
+               sd_photo = sd(n),
+               avg_photo_area_mm2_tot = mean(photo_area_mm2_tot), #average total area of photophores (mm2)
+               sd_photo_area_mm2 = sd(photo_area_mm2_tot), #standard deviation of the total area of photophores
+               avg_photo_area_mmSL_tot = mean(photo_area_mmSL_tot), #average total area of photophores (mm2) standardized by fish body length (SL, mm)
+               sd_area_mmSL_tot = sd(photo_area_mmSL_tot))%>% #standard deviation of the total area of photophores (mm2) standardized by fish body length (SL, mm) 
+    rename(sp = species, t = type)%>%
+    as.data.frame()
+  
+  #add density data to photo_spp_summary dataframe
+  mid_spp_sum<- cbind(mid_spp_sum, temp)%>%
+    select(-c(sp, t))%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic"))) #reorder species to appropriate phylogenetic order
+  
+  #save to .xlsx file in a new tab
+  write.xlsx(mid_spp_sum, file = 'Photo_Data.xls', sheetName = "mid_spp_type_summary", row.names = F, append = T)
+  
+  ## Make a dataframe with ONLY the data for the caudal region ##
+  caudal<-photo%>%
+    filter(region=="caudal")%>%
+    select(-c(x,y,direction, catalog))%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic")))##reorder for phylogenetic arrangement
+  
+  ## Make a summary dataframe for each specimen data in caudal region only 
+  caudal_summary <- caudal%>%
+    dplyr::group_by(id, type)%>%
+    summarize( SL = mean(SL), #in mm
+               n = n(), #number of photophores
+               avg_size = mean(diameter), #Average size of photophores (diameter) in micrometers
+               sd_size = sd(diameter), #Standard deviation of photophore diameter
+               avg_sizeSL= mean(diameter_SL), #Average size of specimen (standard length, in mm)
+               sd_sizeSL= sd(diameter_SL), #Standard deviation of specimen SL 
+               image_area = mean(image_area), #area imaged (cm2)
+               avg_angle = mean(angle, na.rm = T), #Average angle of orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               sd_angle = sd(angle), #standard deviation of angles of orientation
+               photo_area_mm2_mean = mean(photo_area_mm2), #average photophore area (mm2)
+               photo_area_mm2_tot = sum(photo_area_mm2), #sum of photophore areas (mm2)
+               photo_area_mmSL_mean = mean(photo_area_mmSL), #average photophore area standardized for fish SL (mm2/mm)
+               photo_area_mmSL_tot = sum(photo_area_mmSL))%>% #sum of average photophore area standardized for fish SL (mm2/mm)
+    mutate(density = n/image_area)%>% #calculate density - number of photophores/cm2
+    as.data.frame()%>%
+    mutate(species = as.factor(str_sub(id,0,-5)), 
+           specimen = as.factor (str_sub(id, 0, -4)), 
+           region = as.factor(str_sub(id,-2)))%>%
+    relocate(c(species, specimen, region), .before= id )
+  
+  
+  ### Make summary table for caudal data, collating data for each species and type of photophore
+  caudal_spp_sum <- caudal%>%
+    dplyr::group_by(species, type)%>%
+    summarize (n = n_distinct(specimen), #number of specimens
+               avg_size = mean(diameter), #average photophore size (diameter, micrometer)
+               sd_size = sd(diameter), #standard deviation of photophore sizes (diameter)
+               avg_sizeSL = mean(diameter_SL), #average standardized photophore size (micrometer/mmSL) - photophore diameter (micrometer) divided by specimen standard length (mm)
+               sd_sizeSL = sd(diameter_SL),#standard deviation of standardized photophore size
+               avg_angle = mean(angle, na.rm=T), #avearage angle of photophore orientation (degrees, 0 = caudal, -90 = ventral, 180 = rostral, 90 = dorsal)
+               sd_angle = sd(angle, na.rm=T))%>% #standard deviation of photophore orientation
+    as.data.frame()
+  
+  #make summary stats of density and photophore area from the caudal_summary dataframe
+  temp<- caudal_summary%>%
+    group_by(species, type)%>%
+    summarize (avg_density = mean(density), #average photophore density (#/cm2)
+               sd_density = sd(density), #standard deviation of photophore density
+               avg_photo = mean(n), #average number of photophores
+               sd_photo = sd(n),
+               avg_photo_area_mm2_tot = mean(photo_area_mm2_tot), #average total area of photophores (mm2)
+               sd_photo_area_mm2 = sd(photo_area_mm2_tot), #standard deviation of the total area of photophores
+               avg_photo_area_mmSL_tot = mean(photo_area_mmSL_tot), #average total area of photophores (mm2) standardized by fish body length (SL, mm)
+               sd_area_mmSL_tot = sd(photo_area_mmSL_tot))%>% #standard deviation of the total area of photophores (mm2) standardized by fish body length (SL, mm) 
+    rename(sp = species, t = type)%>%
+    as.data.frame()
+  
+  #add density data to photo_spp_summary dataframe
+  caudal_spp_sum<- cbind(caudal_spp_sum, temp)%>%
+    select(-c(sp, t))%>%
+    mutate(species=fct_relevel(species, c("Cslo", "Sboa", "Ncap", "Anig", "Cpli", "Fbou", "Tden", "Lgla", "Ebar", "Ifas", "Mbar", "Bmet", "Pgue", "Pmic"))) #reorder species to appropriate phylogenetic order
+  
+  #save to .xlsx file in a new tab
+  write.xlsx(caudal_spp_sum, file = 'Photo_Data.xls', sheetName = "caudal_spp_type_summary", row.names = F, append = T)
+ 
 
 ## Graphs ####
- 
-  #custom theme for histogram images (size distribution for each species)
+ ##Make custom themes and color schemes for graphs ##
+  
+ #custom theme for histogram images (size distribution for each species)
   custom_theme_hist<- function(){
   theme_bw()+
     theme(axis.text.x = element_text(angle=90, size = 8, vjust=0.3),
           axis.text.y = element_text(size = 8),
-          axis.title.y = element_text(size = 12),
-          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 10),
+          axis.title.x = element_text(size = 10),
           strip.text.x = element_text(size= 10),
           legend.title= element_blank(),
           plot.background=element_blank(),
@@ -282,1206 +444,255 @@ caudal.spp_sum <- caudal%>%
     theme_bw()+
       theme(axis.text.x = element_text(angle=90, size = 8, vjust=0.3),
             axis.text.y = element_text(size = 8),
-            axis.title.y = element_text(size = 12),
-            axis.title.x = element_text(size = 12),
+            axis.title.y = element_text(size = 10),
+            axis.title.x = element_text(size = 10),
             strip.text.x = element_text(size= 10),
             legend.title= element_blank(),
             plot.background=element_blank(),
             panel.grid.minor=element_blank(),
             panel.border=element_blank(),
             axis.line = element_line(),
-            legend.position = "right")
+            legend.position = "bottom")
   }
-  
+
   custom_theme_polar<- function(){
     theme_bw()+
       theme(axis.text.x = element_blank(),
             axis.text.y = element_text(size = 8),
-            axis.title.y = element_text(size = 12),
-            axis.title.x = element_text(size = 12),
+            axis.title.y = element_text(size = 10),
+            axis.title.x = element_text(size = 10),
             strip.text.x = element_text(size= 10),
             legend.title= element_blank(),
             axis.line = element_line(),
-            legend.position = "none")
+            legend.position = "bottom")
   }
- ##Color pallette (based on WesAnderson Pallette - all serials are colorblind friendly Dark 2 - all minutes are lighter hues of the serial)
- custom_colors<- c(
-    'rostral.minute' = "#ACA9D1",
-    'rostral.serial' = "#7570b3",
-    'mid.minute' = "#76C5AD",
-    'mid.serial' = "#1b9e77",
-    'caudal.minute' = "#e89f67", 
-    'caudal.serial' = "#d95f02",
-    'minute' = "#EBEBEB",
-    'serial' = "#929292")
-                         
- custom_cols <- function (...) {
-   cols<-(...)
-   if (is.null (cols))
-     return (custom_colors)
-   custom_colors[cols]
- }
-
-
- ##### ~Diameter####
-
-# Make boxblot to compare the photophore diameter for all species, faceted by region
- ggplot(photo, aes(fill = typereg, x = species, y = diameter_SL))+
-   geom_boxplot(position = "dodge")+
-   theme(axis.text.x=element_text(angle = 90, color = "black"),
-         axis.text.y=element_text(color = "black"))+
-   custom_theme_box()+
-   coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none")+     #use lemon package to make brackets instead of tick marks on x axis
-   ylab("Photophore Diameter (\u00b5m/mm SL)")+ #\u00b5 is unicode text for mu symbol
-   xlab("Species")+
-  scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+ 
-  facet_rep_wrap(~region,nrow=3, repeat.tick.labels = T)
-#+   ggtitle("Photophore Diameter")
- 
-#Save plot as 2 panel figure  
-   ggsave("PhotoDiamrostral_caudal_quant1a.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
-
-
- ### Size - as histogram for minute and serial, faceted for species and region
- 
- photo%>%
-   ggplot()+
-   #geom_density(aes(x= diameter_SL, color = type))+
-   geom_histogram(aes(x=diameter_SL, fill = typereg),color = "black",bins = 20, size = .3)+
-   #geom_vline(data = photo_summary, aes (xintercept = avg_sizeSL, color = type), size = .8, linetype = "dashed")+
-   facet_wrap(species~region, scales = "free_y")+
-   theme_bw()+
-   custom_theme_hist()+
-   scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))
-   xlab("Photophore Diameter (micron/mmSL)")+
-   ylab(element_blank())
-   ggtitle("Photophore size distribution")
- 
-#Separate size frequency graphs for each region - facet by species. Saved as a (rostral), b (mid), and c(caudal) so all three can be printed in a single figure
-  a<-rostral%>%
-   ggplot()+
-   geom_histogram(aes(x=diameter_SL, fill = type),color = "black",bins = 20, size = .3)+
-   theme_bw()+
-   custom_theme_hist()+
-    scale_fill_manual(values=c(#EBEBEB","#929292"))+
-    scale_color_manual(values=c("#7570b3","#ACA9D1"))+
-   ##turn xlab off to get graphs to stack nicely/leave on to have same as other graphs
-   #xlab("Photophore Diameter (?m/mm SL)")+
-   xlab (element_blank())+
-   ylab(element_blank())+
-    geom_vline(data = rostral.spp_sum, aes (xintercept = avg_sizeSL, linetype = type), size = .399)+ 
-    scale_linetype_manual(values=c("dotted", "dashed"))+
-    facet_rep_wrap(~species, ncol = 4, nrow = 3, scales = "free_y", repeat.tick.labels = T)
-   #+ggtitle("rostral photophore size distribution")
- 
-  b<-mid%>%
-   # filter(species %in% c("Sboa", "Anig", "Ncap", "Bmet"))%>%
-    ggplot()+
-    geom_histogram(aes(x=diameter_SL, fill = type, after_stat(count)), color = "black", size = .3)+
-    geom_density(aes(x= diameter_SL, after_stat(count), fill = type), alpha = 0.6)+
-    theme_bw()+
-    custom_theme_hist()+
-    scale_fill_manual(values=c("#929292", "#EBEBEB"))+
-    scale_color_manual(values=c("#929292", "#EBEBEB"))+
-    xlab(element_blank())+
-    xlab("Photophore Diameter (\u00b5m/mm SL)")+
-    ylab("Number of Photophores")+
-    geom_vline(data = mid.spp_sum, aes (xintercept = avg_sizeSL, linetype = type), size = .399)+ 
-    scale_linetype_manual(values=c("dotted", "dashed"))+
-    facet_rep_wrap(~species, scales = "free_y", repeat.tick.labels = T, ncol = 4, drop = T)    #+ggtitle("mid photophore size distribution")
+  # ##store a custom color palette to use on graphs
+  # custom_colors<- c(
+  #   'rostral.minute' = "#ACA9D1",
+  #   'rostral.serial' = "#7570b3",
+  #   'mid.minute' = "#76C5AD",
+  #   'mid.serial' = "#1b9e77",
+  #   'caudal.minute' = "#e89f67",
+  #   'caudal.serial' = "#d95f02",
+  #   'minute' = "#EBEBEB",
+  #   'serial' = "#929292")
+  # 
+  # custom_cols <- function (...) {
+  #   cols<-(...)
+  #   if (is.null (cols))
+  #     return (custom_colors)
+  #   custom_colors[cols]
+  # }
   
-  c<-caudal%>%
-    ggplot()+
-    #geom_density(aes(x= diameter_SL, color = type))+
-    geom_histogram(aes(x=diameter_SL, fill = type),color = "black",bins = 20, size = .3)+
-    theme_bw()+
-    custom_theme_hist()+
-    scale_fill_manual(values=c("#d95f02","#e89f67"))+
-    scale_color_manual(values=c("#d95f02","#e89f67"))+
-    xlab("Photophore Diameter (?m/mm SL)")+
-    #set xlim (0,6) to get to match with rostral, mid graphs
-    xlim (0,6)+
-    ylab(element_blank())+
-    geom_vline(data = caudal.spp_sum, aes (xintercept = avg_sizeSL, linetype = type), size = .399)+ 
-    scale_linetype_manual(values=c("dotted", "dashed"))+
-    facet_rep_wrap(~species, ncol = 3, nrow = 4, scales = "free_y", repeat.tick.labels = T)
-    #+ggtitle("caudal photophore size distribution")
+###Figures####
   
-
-#Combine a, b, and c vertically using Patchwork package and save
-
- a/b/c+plot_layout(heights = c(.8, 4.72, 2))+plot_annotation(tag_levels = 'A')
- 
- ggsave("Photdiameter_rostral-caudal.pdf", plot = last_plot(), device = "pdf", scale = 1, width = 6.5, height = 10.34, units = "in", bg = "white")
- 
- #OR save each plot individually and combine manually in InkScape or Adobe Illustrator
-  #Save for panel a of a 2 panel wide figure. 
-   ggsave("PhotoDiamrostral_quant1b.pdf",a,dpi=300,height = unit(1.513,"in"),width = unit(6.553,"in"))
-  #Save for panel b in a 2 panel wide figure
-  ggsave("PhotoDiammid_quant1c.pdf",b,dpi=300,height = unit(6,"in"),width = unit(6.5,"in"))
-  #Save for panel c in a 2 panel wide figure
-  ggsave("PhotoDiamcaudal_quant1d.pdf",c,dpi=300,height = unit(2.9,"in"),width = unit(6.5,"in")) 
-  
-## Graphs of size frequency for Pgue, Pmic, and Sboa to use as to show comparisions in size freq variation in each region on a single individual
-  
- #Pgue
-  vline_temp<- photo_spp_summary%>%      ## make a temp dataframe to house mean diameter info for just P.gue (otherwise will plot all data for all species and is a hot mess)
-    filter(species=="Pgue")
-  
-  photo%>%
-    filter(species == "Pgue")%>%
-    ggplot()+
-    geom_histogram(aes(x=diameter_SL, fill = typereg), color = "black", bins = 20, size =.3)+
-    #theme_bw()+
-    custom_theme()+
-    xlab("Photophore Diameter (?m/mm SL)")+
-    ylab("Number of Photophores")+
-    geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "#333333ff", linetype = type), size = .399)+ 
-    scale_linetype_manual(values=c("dotted", "dashed"))+
-    scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-    scale_color_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-    facet_rep_wrap(~region,nrow=1,ncol=3, scales = "fixed")
-    #ggtitle("P.guernei photophore diameter variation by region")
-
-  ggsave(filename = "Pgue_DiameterHist.pdf", device = "pdf", plot = last_plot(), scale = 1, width = 4.25, height = 3, units = "in", dpi = 300, bg = "white")
-    
-    
-  #Pmic
-    vline_temp<- photo_spp_summary%>%      ## make a temp dataframe to house mean diameter info for just P.gue (otherwise will plot all data for all species and is a hot mess)
-    filter(species=="Pmic")
-  
-  photo%>%
-    filter(species == "Pmic")%>%
-    ggplot()+
-    geom_histogram(aes(x=diameter_SL, fill = typereg), color = "black", bins = 20, size =.3)+
-    #theme_bw()+
-    custom_theme()+
-    xlab("Photophore Diameter (?m/mm SL)")+
-    ylab("Number of Photophores")+
-    geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "#333333ff", linetype = type), size = .399)+ 
-    scale_linetype_manual(values=c("dotted", "dashed"))+
-    scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-    scale_color_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-    facet_rep_wrap(~region,nrow=1,ncol=3, scales = "fixed")
-  #ggtitle("P.microdon photophore diameter variation by region")
-  
-  ggsave(filename = "Pmic_DiameterHist.pdf", device = "pdf", plot = last_plot(), scale = 1, width = 4.25, height = 3, units = "in", dpi = 300, bg = "white")
-  
-  #Sboa
-  vline_temp<- photo_spp_summary%>%      ## make a temp dataframe to house mean diameter info for just P.gue (otherwise will plot all data for all species and is a hot mess)
-    filter(species=="Sboa")
-  
-  photo%>%
-    filter(species == "Sboa")%>%
-    ggplot()+
-    geom_histogram(aes(x=diameter_SL, fill = typereg), color = "black", bins = 20, size =.3)+
-    #theme_bw()+
-    custom_theme()+
-    xlab("Photophore Diameter (?m/mm SL)")+
-    ylab("Number of Photophores")+
-    geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "#333333ff", linetype = type), size = .399)+ 
-    scale_linetype_manual(values=c("dotted", "dashed"))+
-    scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-    scale_color_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-    facet_rep_wrap(~region,nrow=1,ncol=3, scales = "fixed")
-  #ggtitle("S.boa photophore diameter variation by region")
-  
-  ggsave(filename = "Sboa_DiameterHist.pdf", device = "pdf", plot = last_plot(), scale = 1, width = 2.832, height = 3, units = "in", dpi = 300, bg = "white")
-  
-
- 
- ####~Density#### 
-  
-  # Make boxblot to compare the photophore density for all species, faceted by region
-  photo_summary%>%
-    ggplot(aes(fill = typereg, x = species, y = density))+
-    geom_boxplot(position = "dodge")+
-    theme(axis.text.x=element_text(angle = 90, color = "black"),
-          axis.text.y=element_text(color = "black"))+
-    custom_theme_box()+
-    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none")+     #use lemon package to make brackets instead of tick marks on x axis
-    ylab("Photophore Density(#/cm2)")+
-    xlab("Species")+
-    scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+ 
-    facet_rep_wrap(~region,nrow=3, repeat.tick.labels = T, scales = "free_y")
-  #+   ggtitle("Photophore Diameter")
-
-  ggsave("PhotoDensityrostral_caudal.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
-  
-  ##Density for Pgue, Pmic, and Sboa to use as part of regional comparisson for each of those species
-  
-  #Density for Sboa, Pgue, Pmic with all regions on a single graph, faceted by species
-  photo_summary%>%
-    filter(species =="Pgue")%>%
-    ggplot(aes(fill = typereg, x = region , y = density))+
-    geom_boxplot(position = "dodge")+
-    theme(axis.text.x=element_text(angle = 90, color = "black"),
-          axis.text.y=element_text(color = "black"))+
-    custom_theme_box()+
-    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.14, "npc")), left = "none")+     #use lemon package to make brackets instead of tick marks on x axis
-    ylab("Photophore Density (#/cm2)")+
-    xlab("Region")+
-    theme(legend.position = "none")+
-    scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))
-  
-  ggsave("PhotoDensity_Pgue_rostral-caudal.pdf", device = "pdf", last_plot(),dpi=300, width = 1.96, height = 3, unit = "in")
-  
-  photo_summary%>%
-    filter(species =="Pmic")%>%
-    ggplot(aes(fill = typereg, x = region , y = density))+
-    geom_boxplot(position = "dodge")+
-    theme(axis.text.x=element_text(angle = 90, color = "black"),
-          axis.text.y=element_text(color = "black"))+
-    custom_theme_box()+
-    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.14, "npc")), left = "none")+     #use lemon package to make brackets instead of tick marks on x axis
-    ylab("Photophore Density (#/cm2)")+
-    xlab("Region")+
-    theme(legend.position = "none")+
-    scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))
-  
-  ggsave("PhotoDensity_Pmic_rostral-caudal.pdf", device = "pdf", last_plot(),dpi=300, width = 1.96, height = 3, unit = "in")
-  
-  photo_summary%>%
-    filter(species =="Sboa")%>%
-    ggplot(aes(fill = typereg, x = region , y = density))+
-    geom_boxplot(position = "dodge")+
-    theme(axis.text.x=element_text(angle = 90, color = "black"),
-          axis.text.y=element_text(color = "black"))+
-    custom_theme_box()+
-    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.14, "npc")), left = "none")+     #use lemon package to make brackets instead of tick marks on x axis
-    ylab("Photophore Density (#/cm2)")+
-    xlab("Region")+
-    theme(legend.position = "none")+
-    scale_fill_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))
-  
-  ggsave("PhotoDensity_Sboa_rostral-caudal.pdf", device = "pdf", last_plot(),dpi=300, width = 1.96, height = 3, unit = "in")
-
- ### ~ Orientation Graphs ####
- 
-##Individual orientation graphs for each region - -90 is ventral orientation, lines show the average photophore size for serial or minute for each speices.
-
-#build temp dataframe to hold data for the average size line for the region (otherwise will plot all data if more than one region analyzed for the species)
-vline_temp <- photo_spp_summary%>%
-  filter(region=="rostral")
-
-a<- photo%>%
-   filter(region == "rostral")%>%
-   ggplot()+
-    geom_vline(data = vline_temp, color = "black",alpha = .8, aes (xintercept = avg_sizeSL, linetype = type), size = .9)+ 
-  scale_linetype_manual(values=c("dotted", "solid"))+ 
-  geom_point(aes(x=diameter_SL,y=angle, fill = type), size=2, pch=21, stroke = .3)+
-   custom_theme_polar()+
-   xlab("Photophore Diameter (\u00b5m/mm SL)")+
-   ylab(element_blank())+
-   scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
-   scale_fill_manual(values=custom_cols(c("minute", "serial")))+
-   coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation 
-                        # plots the average size for each photophore class (per species) - may need to remove
-    facet_wrap(~species)+
-     theme(strip.background = element_rect(fill="white"))
-   #ggtitle("rostral photophore size and orientation")
- 
-vline_temp <- photo_spp_summary%>%
-  filter(region=="mid")
-
-b<- photo%>%
-  #filter(type == "minute")%>%
-  filter(region == "mid")%>%
-  ggplot()+
-  geom_point(aes(x=diameter_SL,y=angle, color = typereg), size=2, pch=20)+
-  custom_theme_polar()+
-  xlab("Photophore Diameter (?m/mm SL)")+
-  ylab(element_blank())+
-  scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
-  scale_color_manual(values=custom_cols(c("mid.minute", "mid.serial")))+
-  coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation 
-  geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "black", linetype = type), size = .67)+ 
-  scale_linetype_manual(values=c("dotted", "solid"))+                        # plots the average size for each photophore class (per species) - may need to remove
-  facet_wrap(~species,ncol=3)
-  #ggtitle("mid photophore size and orientation")
-
-vline_temp <- photo_spp_summary%>%
-  filter(region=="caudal")
-
-c<- photo%>%
-  #filter(type == "minute")%>%
-  filter(region == "caudal")%>%
-  ggplot()+
-  geom_point(aes(x=diameter_SL,y=angle, color = typereg), size=2, pch=20)+
-  custom_theme_polar()+
-  xlab("Photophore Diameter (?m/mm SL)")+
-  ylab(element_blank())+
-  scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
-  scale_color_manual(values=custom_cols(c("caudal.minute", "caudal.serial")))+
-  coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation 
-  geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "black", linetype = type), size = .67)+ 
-  scale_linetype_manual(values=c("dotted", "solid"))+                        # plots the average size for each photophore class (per species) - may need to remove
-  facet_wrap(~species)
-  #ggtitle("caudal photophore size and orientation")
-
-ggsave("PhotoOrientationrostral.pdf",a,dpi=300,height = unit(1.15,"in"),width = unit(4.45,"in"))
-ggsave("PhotoOrientationmid.pdf",b,dpi=300,height = unit(4.57,"in"),width = unit(4.45,"in"))
-ggsave("PhotoOrientationcaudal.pdf",c,dpi=300,height = unit(2.23,"in"),width = unit(4.45,"in"))
- ##species comparisons by region
-
-#Pmic
-vline_temp <- photo_spp_summary%>%
-  filter(species == "Pmic")
-
-photo%>%
-  filter(species == "Pmic")%>%
-  ggplot()+
-  geom_point(aes(x=diameter_SL,y=angle, color = typereg), size=2, pch=20)+
-  custom_theme_polar()+
-  xlab("Photophore Diameter (?m/mm SL)")+
-  ylab(element_blank())+
-  scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
-  scale_color_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-  coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation 
-  geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "black", linetype = type), size = .67)+ 
-  scale_linetype_manual(values=c("dotted", "solid"))+                        # plots the average size for each photophore class (per species) - may need to remove
-  facet_wrap(~region, scales = "fixed")
-  #+ggtitle("Pmic photophore size and orientation")
-
-ggsave("Pmic_Orientation.pdf", device = "pdf", last_plot(), dpi = 300, height = 3 , width = 4.31, unit = "in")
-
-#Pgue
-vline_temp <- photo_spp_summary%>%
-  filter(species == "Pgue")
-
-
-photo%>%
-  filter(species == "Pgue")%>%
-  ggplot()+
-  geom_point(aes(x=diameter_SL,y=angle, color = typereg), size=2, pch=20)+
-  custom_theme_polar()+
-  xlab("Photophore Diameter (?m/mm SL)")+
-  ylab(element_blank())+
-  scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
-  scale_color_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+
-  coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation 
-  geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "black", linetype = type), size = .67)+ 
-  scale_linetype_manual(values=c("dotted", "solid"))+                        # plots the average size for each photophore class (per species) - may need to remove
-  facet_wrap(~region, scales = "fixed")
-#+ggtitle("Pmic photophore size and orientation")
-
-ggsave("Pgue_Orientation.pdf", device = "pdf", last_plot(), dpi = 300, height = 3 , width = 4.31, unit = "in")
-
-
-#Sboa
-vline_temp <- photo_spp_summary%>%
-  filter(species == "Sboa")
-
-
-photo%>%
-  filter(species == "Sboa")%>%
-  ggplot()+
-  geom_point(aes(x=diameter_SL,y=angle, color = typereg), size=2, pch=20)+
-  custom_theme_polar()+
-  xlab("Photophore Diameter (?m/mm SL)")+
-  ylab(element_blank())+
-  scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
-  scale_color_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial")))+
-  coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation 
-  geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, color = "black", linetype = type), size = .67)+ 
-  scale_linetype_manual(values=c("dotted", "solid"))+                        # plots the average size for each photophore class (per species) - may need to remove
-  facet_wrap(~region, scales = "fixed")
-#+ggtitle("Pmic photophore size and orientation")
-
-ggsave("Sboa_Orientation.pdf", device = "pdf", last_plot(), dpi = 300, height = 3 , width = 3, unit = "in")
-
-##New Figures
-## Photophore Diameter and Density 
-## Mid Region
+## Figure 7: Photophore Diameter and Density and (new) total area
 
 # Make boxblot to compare the photophore diameter for mid region
-a <- ggplot2::ggplot(mid, aes(fill = type, x = species, y = diameter_SL))+ 
-  geom_boxplot(position = "dodge")+ 
-  theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
-  custom_theme_box()+ 
-  coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
-  ylab("Photophore Diameter (\u00b5m/mm SL)")+ #\u00b5 is unicode text for mu symbol
-  xlab(element_blank())+ 
-  scale_fill_manual(values= c("#929292","#EBEBEB"))
-
-#Make boxplot to compare photophore density for mid region
-b <- ggplot2::ggplot(mid.summary, aes(fill = type, x = species, y = density))+ 
-  geom_boxplot(position = "dodge")+ 
-  theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
-  custom_theme_box()+ 
-  coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
-  ylab("Photophore Density (#/cm\u00b2)")+ #\u00b2 is unicode text for squared symbol
-  xlab("Species")+ 
-  scale_fill_manual(values= c("#929292","#EBEBEB"))
-
-#combine diameter and density plots into one figure using patchwork package
-
-a/ b + plot_layout(guides = "collect", heights = 1) + plot_annotation(tag_levels = "A") #collect combines axes and/or legend (guides)
-
-#Save plot as 2 panel figure  
-ggsave("Figure6.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
-
-## Make supplemental figure with diameter and density for rostral and caudal regions
-
-#make plot of the photophore diameterss for rostral and cuadal regions
-a<- photo%>%
-  filter(region !="mid")%>%
-  ggplot2::ggplot(., aes(fill = type, x = species, y = diameter_SL))+
-  geom_boxplot(position = "dodge")+ 
-  theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
-  custom_theme_box()+ 
-  coord_capped_cart(bottom = brackets_horizontal(length = unit (0.06, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
-  ylab("Photophore Diameter (\u00b5m/mm SL)")+ #\u00b5 is unicode text for mu symbol
-  xlab(element_blank())+ 
-  scale_fill_manual(values= c("#929292","#EBEBEB"))+
-  facet_grid(cols = vars(region), scales = "free_x", space = "free_x")+
-  theme(strip.background = element_rect(fill="white"))
-#make a plot of the photophore densities for rostral and caudal regions
-b<-photo_summary%>%
-  filter(region !="mid")%>%
-  ggplot2::ggplot(., aes(fill = type, x = species, y = density))+ 
-  geom_boxplot(position = "dodge")+ 
-  theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
-  custom_theme_box()+ 
-  coord_capped_cart(bottom = brackets_horizontal(length = unit (0.06, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
-  ylab("Photophore Density (#/cm\u00b2)")+ #\u00b2 is unicode text for squared symbol
-  xlab("Species")+ 
-  scale_fill_manual(values= c("#929292","#EBEBEB"))+
-  facet_grid(cols = vars(region), scales = "free_x", space = "free_x") +
-  theme(strip.background = element_rect(fill="white"))
-
-#Use patchwork package to combine into single plot
-a/b+plot_layout(guides = "collect") + plot_annotation(tag_levels = "A")
-#Save plot as 2 panel figure  
-ggsave("Figure6Sup.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
-
-
-########## STATS ######
-
-#Photophore orientation#
-#tes for normalcy
-
-stats <- photo%>%
-  group_by(species, typereg)%>%
-  summarize(SL = mean(SL), n = n(), avg_size = mean(diameter), min_size = min(diameter), max_size = max(diameter), sd_size = sd(diameter), 
-            image_area = mean(image_area), avg_angle = mean(angle, na.rm=T), min_angle = min(angle), max_angle = max(angle), sd_angle = sd(angle))
-
-
-temp<-photo %>% 
-  dplyr::group_by(species, type) %>% 
-  filter (!species %in% c("Pgue", "Pmic","Bmet","Mbar"))
-
+  a <- ggplot2::ggplot(mid, aes(fill = type, x = species, y = diameter_SL))+ 
+    geom_boxplot(position = "dodge")+ 
+    theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
+    custom_theme_box()+ 
+    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
+    ylab("Photophore Diameter (\u00b5m/mm SL)")+ #\u00b5 is unicode text for mu symbol
+    xlab(element_blank())+ 
+    scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+    #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
   
-shapiro<-temp%>%
-    rstatix::shapiro_test(.,angle)%>%
-    filter (p >= 0.05)
-#all but Cslo and Ncap are non-parametric therefore run nonparametric tests for all
+  #Make boxplot to compare photophore density for mid region
+  b <- ggplot2::ggplot(mid_summary, aes(fill = type, x = species, y = density))+ 
+    geom_boxplot(position = "dodge")+ 
+    theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
+    custom_theme_box()+ 
+    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
+    ylab("Photophore Density (#/cm\u00b2)")+ #\u00b2 is unicode text for squared symbol
+    xlab(element_blank())+ 
+    scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+    #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
+  
+ c <- ggplot2::ggplot(mid_summary, aes(fill = type, x = species, y = photo_area_mmSL_tot))+ 
+    geom_boxplot(position = "dodge")+ 
+    theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
+    custom_theme_box()+ 
+    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
+    ylab("Photophore Area (mm²/mmSL)")+ #\u00b5 is unicode text for mu symbol
+    xlab("Species")+ 
+   scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+   #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
+  
+  #combine diameter and density plots into one figure using patchwork package
+  
+  a/ b/c + plot_layout(guides = "collect", heights = 1) + plot_annotation(tag_levels = "A") #collect combines axes and/or legend (guides)
+  
+  #Save plot as 2 panel figure  
+  ggsave("Figure7.pdf",last_plot(),dpi=300,height = unit(9,"in"),width = unit(6.5,"in"))
+  
+  
+##Figure 8 - Size frequency distribution of photophores in representative species
+  
+# make a temp dataframe to house mean photophore diameter info for species of interest
+  vline_temp<- mid_spp_sum%>%     
+    filter(species %in% c("Sboa", "Anig", "Ncap", "Bmet"))
+  
+#build size frequency graphs
+  a<-mid%>%
+    filter(species %in% c("Sboa", "Anig", "Ncap", "Bmet"))%>%
+    mutate(type = fct_relevel(type, "minute"))%>%
+    ggplot()+
+    geom_histogram(aes(x=diameter_SL, fill = type, after_stat(count)), color = "black", size = .3, binwidth = 0.2)+
+    #geom_density(aes(x= diameter_SL, after_stat(count), fill = type), alpha = 0.6)+
+    theme_bw()+
+    custom_theme_hist()+
+    scale_color_manual(values=c("#EBEBEB","#929292"))+
+    scale_fill_manual(values= c("#EBEBEB", "#929292"))+ #greyscale
+    #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
+    xlab("Photophore Diameter (\u00b5m/mm SL)")+
+    ylab("Number of Photophores")+
+    geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8)+
+    scale_linetype_manual(values=c("dotted", "solid"))+
+    facet_rep_wrap(~species, scales = "free_y", repeat.tick.labels = T, ncol = 1, drop = T, labeller = as_labeller (c(Sboa = "Stomias boa ferox",  Anig = "Astronesthes niger", Ncap = "Neonesthes capensis",Bmet = "Bathophilus metallicus")))+
+    theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+  
+  ggsave("Figure8.pdf",last_plot(),dpi=300,height = unit(3.3,"in"),width = unit(6.3,"in"))
 
-wilcox.angle<-photo%>%
-  #filter(region=="mid")%>%
-  dplyr::group_by(species, region)%>%
-  rstatix::wilcox_test(angle~type)%>%
-  mutate(significance = case_when (p > 0.05 ~ "ns", between(p, 0.005, 0.05) ~ "*", p <= 0.005 ~ "**"))
+#Figure 9: Photophore orientation in mid region
+ 
+  #make a temporary dataframe to hold summary data for vline 
+  vline_temp <- photo_spp_summary%>%
+    filter(region=="mid")
+  
+ a<- photo%>%
+    filter(region == "mid")%>%
+    ggplot()+
+    geom_point(aes(x=diameter_SL,y=angle, fill = type), size=1.8, pch=21, color = "black")+
+    custom_theme_polar()+
+    xlab("Photophore Diameter (\u00b5m/mm SL)")+
+    ylab(element_blank())+
+    scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
+    scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+   #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
+    coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation
+    #geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8)+ #plot a line showing average photophore size of each type
+    geom_hline(data = vline_temp, aes (yintercept = avg_angle, linetype = type), size = .75, alpha = 0.7)+ #plot a line showing average orientation for each photohpore type
+    scale_linetype_manual(values=c("dotted", "solid"))+                        
+    facet_wrap(~species,ncol=3)+  
+    theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+  
+  #Save plot   
+  ggsave("Figure9.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
+  
+  
+#Figure 10: Photostomias guernei
+  
+  #Photophore density distribution for each region
+  
+  vline_temp<- photo_spp_summary%>%  # make a temp dataframe to house mean diameter info for just P.gue 
+    filter(species=="Pgue")
+  
+  a<-photo%>%
+    filter(species == "Pgue")%>%
+    mutate(type = fct_relevel(type, "minute"))%>%
+    ggplot()+
+    geom_histogram(aes(x=diameter_SL, fill = type, after_stat(count)), color = "black", size = .3, binwidth = 0.2)+
+    #geom_density(aes(x= diameter_SL, after_stat(count), fill = type), alpha = 0.6)+
+    theme_bw()+
+    custom_theme_hist()+
+    theme(axis.text.x = element_text(angle=0, size = 8, vjust=0.3))+
+    scale_color_manual(values=c("#EBEBEB","#929292"))+
+    scale_fill_manual(values= c("#EBEBEB","#929292"))+ #greyscale
+    #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
+    xlab("Photophore Diameter (\u00b5m/mm SL)")+
+    ylab("Number of Photophores")+
+    geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8)+
+    scale_linetype_manual(values=c("dotted", "solid"))+
+    facet_rep_wrap(~region, repeat.tick.labels = T, ncol = 1, drop = T)+
+    theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
 
-wilcox.size<-photo%>%
-  #filter(region=="mid")%>%
-  dplyr::group_by(species, region)%>%
-  rstatix::wilcox_test(diameter~type)%>%
-  mutate(significance = case_when (p > 0.05 ~ "ns", between(p, 0.005, 0.05) ~ "*", p <= 0.005 ~ "**"))
+  #Build density graphs
+    b<-photo_summary%>%
+    filter(species == "Pgue")%>%
+    ggplot(aes(fill = type, x = species, y = density))+ 
+    geom_boxplot(position = "dodge")+ 
+    custom_theme_box()+ 
+    theme(axis.text.x=element_blank(),axis.text.y=element_text(color = "black"))+ 
+    ylab("Photophore Density (#/cm\u00b2)")+ #\u00b2 is unicode text for squared symbol
+    scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+    #scale_fill_manual(values = c("#d95f02", "#1b9e77"))+ #colorblind friendly
+    xlab(element_blank())+ 
+    facet_rep_wrap(~region, repeat.tick.labels = T, nrow = 1, drop = T)+
+    theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
 
-wilcox.sizeSL<-photo%>%
-  #filter(region=="mid")%>%
-  dplyr::group_by(species, region)%>%
-  rstatix::wilcox_test(diameter_SL~type)%>%
-  mutate(significance = case_when (p > 0.05 ~ "ns", between(p, 0.005, 0.05) ~ "*", p <= 0.005 ~ "**"))
-
-wilcox.density<-photo_summary%>%
-  #filter(region=="mid")%>%
-  dplyr::group_by(species)%>%
-  rstatix::wilcox_test(density~type)%>%
-  mutate(significance = case_when (p > 0.05 ~ "ns", between(p, 0.005, 0.05) ~ "*", p <= 0.005 ~ "**"))
-
-
-
-
-##### OLD CODE BITS ####
-   ### Make summary dataframe for each SPECIES
-   # caudal.spp_sum <- caudal%>%
-   #   dplyr::group_by(species, type)%>%
-   #   summarize (n = n_distinct(specimen), avg_SL = mean(SL), sd_SL = sd(SL), avg_size = mean(diameter), 
-   #              avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-   #              sd_size = sd(diameter), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle, na.rm=T))%>%
-   #   as.data.frame()
-   # 
-   # temp<- caudal.summary%>%                                                           ##calculate summary statistics for density (must be done) from the summary dataframe
-   #   group_by(species,type)%>%
-   #   summarize (avg_density = mean(density), sd_density = sd(density), 
-   #              avg_n = mean(n), sd_n = sd(n))%>%
-   #   rename(sp = species, t=type)%>%
-   #   as.data.frame()
-   # 
-   # caudal.spp_sum<- cbind(caudal.spp_sum, temp)%>%
-   #   select(-sp,-t)
-   # 
-   # write.xlsx(caudal.spp_sum, file = 'Photo_Data.xls', sheetName = "caudal.Spp_type_summary", row.names = F, append = T)
-   # 
-   #  ###Make a dataframe with data for mid and compatible caudal and rostral values (based on the above stats) ###
-   # R.filtered<-photo%>%
-   #   filter(!id %in% c("Mbar4_caudal","Pmic2_rostral", "Mbarostral_caudal", "Mbacaudal_caudal"))%>%
-   #   filter(!species %in% c("Ebar", "Fbou", "Ifas"))%>%
-   #   select(-c(x,y,direction, catalog))
-   #    
-   # ## Make a summary dataframe for each specimen data
-   # R.filtered.summary <- R.filtered%>%
-   #   dplyr::group_by(id,type)%>%
-   #   summarize(SL = mean(SL), n = n(), avg_size = mean(diameter), sd_size = sd(diameter),
-   #             avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-   #             image_area = mean(image_area), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle))%>%
-   #   mutate(density = n/image_area)%>%
-   #   as.data.frame()%>%
-   #   mutate(species = as.factor(str_sub(id,0,-5)), specimen = as.factor (str_sub(id, 0, -4)), region = as.factor(str_sub(id,-2)))     #remake the species and region cols that were lost during summarize function
-   # 
-   # ### Make summary table for each SPECIES
-   # R.filtered.spp_sum <- R.filtered%>%
-   #   dplyr::group_by(species,type)%>%
-   #   summarize (n = n_distinct(specimen), avg_SL = mean(SL), sd_SL = sd(SL), avg_size = mean(diameter), 
-   #              avg_sizeSL=mean(diameter_SL), sd_sizeSL= sd(diameter_SL),
-   #              sd_size = sd(diameter), avg_angle = mean(angle, na.rm=T), sd_angle = sd(angle, na.rm=T))%>%
-   #   as.data.frame()
-   # 
-   # temp<- R.filtered.summary%>%                                                           ##calculate summary statistics for density (must be done) from the summary dataframe
-   #   group_by(species,type)%>%
-   #   summarize (avg_density = mean(density), sd_density = sd(density), 
-   #              avg_n = mean(n), sd_n = sd(n))%>%
-   #   rename(sp = species, t=type)%>%
-   #   as.data.frame()
-   # 
-   # R.filtered.spp_sum<- cbind(R.filtered.spp_sum, temp)%>%
-   #   select(-sp, -t)
-   # 
-   # write.xlsx(R.filtered.spp_sum, file = 'Photo_Data.xls', sheetName = "R.filt_type", row.names = F, append = T)
-   # 
-   
-###Look for differences in photophore size based on SL ##
-   
-   #### PHOTOPHORE SIZE VS SL plot with confidence line - this is poor visualization since sample size is too small ###
-   # ggplot(caudal, aes(x=SL, y = diameter))+
-   #   geom_point(aes(color=species))+
-   #   geom_smooth(method="lm") +
-   #   facet_wrap(~species, scales = "free")
-   
-   #### PHOTOPHORE SIZE DISTRIBUTION IN EACH SPECIES - tease apart the serial vs minute photophores
-   #   ggplot(mid, aes(x=diameter))+
-   #    geom_histogram(binwidth=0.01)+
-   #    geom_density(aes(color=specimen))+
-   #    facet_wrap(~species,scales="free")
-   #  
-   #  photo%>%
-   #    filter(species == "Tden")%>%
-   #    ggplot(., aes(x=diameter))+
-   #    geom_histogram(binwidth=0.01, color = 'black', aes(fill=specimen)) +
-   #    facet_wrap(~specimen, ncol=1)
-   #  
-   # ggplot(mid, aes(species, diameter))+
-   #   geom_boxplot()+
-   #   geom_point(aes(color=specimen))
-   # 
-   # R.filtered%>%
-   #   filter(type =="minute")%>%
-   #   filter(species == "Tden")%>%
-   #   ggplot(., aes(x=diameter))+
-   #   geom_histogram(color = "black")+
-   #   #geom_histogram(aes(color = specimen))+
-   #   geom_density(aes(fill=specimen), alpha=0.4)+
-   #   facet_wrap(~species, ncol=1)
-   
-   
-   ## BOXPLOT showing photophore size as factor of body size - use to see if there could be indication of minute/serial photophores changing with SL
-   
-   # mid%>%                             #use mid for mid photohpores, caudal for caudal, and photo for all regions
-   #   mutate(SL= as.factor(SL))%>%    ##mutate as factor to get to plot as discrete bars
-   #   #filter(type=="serial")%>%      # filter if interested in seeing individual type of photophore, otherwise will plot serial and minute side by side
-   #   ggplot(aes(x=SL, y = diameter, fill = type))+ #change fill = region if plotting from photo 
-   #   #geom_boxplot()+
-   #   geom_violin()+
-   #   #geom_point()+
-   #   facet_wrap(~species, scale = "free")+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #            plot.background=element_blank(),
-   #            panel.grid.major=element_blank(),
-   #            panel.grid.minor=element_blank())+
-   #   ggtitle("mid Photophore Sizes by SL")
-   
-   ###Bar plot showing photophore densities as factor of SL - use to determine if the density of photophores may change with size/ontogeny
-   ## NOTE: have to use bar b.c. there is only a single density value per specimen
-   
-   # caudal.summary%>%
-   #   mutate(SL = as.factor(SL))%>%
-   #   #filter(type=="minute")%>%
-   #   ggplot(aes(x=SL, y = density, fill = type))+
-   #   geom_col(position = "dodge")+              
-   #   facet_wrap(~species, scale = "free_x")+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         plot.background=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   ggtitle("caudal Photophore Density by SL")
-   
-   ###### Plot differences in size based on minute vs serial photophores ##
-   # ggplot(photo, aes(x= diameter))+
-   #   geom_histogram(aes(fill = type), color = "black", binwidth = 0.01)+
-   #   facet_wrap(~species, scales = "free")
-   # 
-   #  ggplot(photo, aes(fill = type, x = species, y = diameter))+
-   #     geom_boxplot(position = "dodge")+
-   #    theme(axis.text.x=element_text(angle = 90, color = "black"),
-   #          axis.text.y=element_text(color = "black"))
-   
-   # photo%>%
-   #   filter(region=="mid")%>%
-   #   filter(type=="minute")%>%
-   # ggplot(., aes (x=species, y = diameter))+
-   #   geom_boxplot(aes(fill=direction))+
-   #   theme_bw()+
-   #   theme(axis.text.x=element_text(angle=90),
-   #         plot.background=element_blank(),
-   #         panel.grid.major = element_blank(),
-   #         panel.grid.minor = element_blank())+
-   #   #geom_hline(yintercept= -180, linetype = "dashed" )+
-   #   ggtitle("mid size by direction")
-   #   
-   # ## Same as above but with subset data...
-   # mid%>%
-   #   #filter(type == "minute")%>%
-   #   ggplot(., aes(x=species, y = diameter, fill = type))+
-   #   geom_boxplot()+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90),
-   #         plot.backgroun=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor = element_blank())+
-   #   ggtitle("mid Photophore Sizes")
-   # 
-   ### Plot bar graph showing average minute vs serial photophore diameter for each species. Error bars = +/- 1 standard deviation
-   ### NEED TO ADD Y axis label and get error bars to align appropriately
-   # mid.spp_sum%>%
-   #   group_by(type)%>%
-   #   #filter(type == "minute")%>%
-   #   ggplot(., aes(x=species, y = avg_size, fill = type))+
-   #   geom_col(position="dodge")+
-   #   geom_errorbar(data=mid.spp_sum,aes(ymin=avg_size-sd_size, ymax=avg_size+sd_size),width=0.25, position = "dodge")+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90),
-   #         plot.backgroun=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor = element_blank())+
-   #    ggtitle("mid Average Photophore Sizes")
-   ## Minute photophore size by region
-   
-   # photo%>% 
-   #    filter(type == "minute")%>%
-   #    filter(species %in% c("Mbar", "Pgue", "Pmic", "Sboa"))%>%
-   #    ggplot()+
-   #  geom_histogram(aes(x=diameter_SL, fill = region, color = region), alpha =0.7, bins=20)+
-   #    facet_wrap(~species, scales = "free_y")+
-   #    theme_bw()+
-   #    theme(axis.text.x = element_text(angle=90, size = 6),
-   #          axis.text.y = element_text(size = 6),
-   #          plot.background=element_blank(),
-   #          panel.grid.major=element_blank(),
-   #          panel.grid.minor=element_blank())+
-   #    xlab("Photophore Size (diameter/SL)")+
-   #    scale_fill_manual(values = c("#7570b3", "#1b9e77",'#d95f02'))+     ## Dark colors, rearranged - colorblind friendly
-   #    scale_color_manual(values = c("#7570b3", "#1b9e77",'#d95f02'))+
-   #    ggtitle("Minute Photophore Size by Region")
-   
-   # Photophore Diameter box plots - broken up by region
-   #rostral Photophore Diameter bar plot
-   # ggplot(rostral, aes(fill = type, x = species, y = diameter_SL))+
-   #   geom_boxplot(position = "dodge")+
-   #   theme(axis.text.x=element_text(angle = 90, color = "black"),
-   #         axis.text.y=element_text(color = "black"))+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         axis.title.y = element_text(size = 8),
-   #         axis.title.x = element_text(size = 8),
-   #         legend.title= element_blank(),
-   #         plot.background=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   ylab("Photophore Diameter (mm/SL)")+
-   #   xlab("Species")+
-   #   scale_fill_manual(values=c("#ACA9D1","#7570b3" ))+
-   #   ggtitle("rostral Photophore Diameter")
-   # 
-   #  #mid Photophore Diameter bar plot
-   # ggplot(mid, aes(fill = type, x = species, y = diameter_SL))+
-   #   geom_boxplot(position = "dodge")+
-   #   theme(axis.text.x=element_text(angle = 90, color = "black"),
-   #         axis.text.y=element_text(color = "black"))+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         axis.title.y = element_text(size = 8),
-   #         axis.title.x = element_text(size = 8),
-   #         legend.title= element_blank(),
-   #         plot.background=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   ylab("Photophore Diameter (mm/SL)")+
-   #   xlab("Species")+
-   #   scale_fill_manual(values=c("#76C5AD", "#1b9e77"))+
-   #    ggtitle("mid Photophore Diameter")
-   # 
-   #    #caudal photphore diameter
-   # ggplot(caudal, aes(fill = type, x = species, y = diameter_SL))+
-   #   geom_boxplot(position = "dodge")+
-   #   theme(axis.text.x=element_text(angle = 90, color = "black"),
-   #         axis.text.y=element_text(color = "black"))+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         axis.title.y = element_text(size = 8),
-   #         axis.title.x = element_text(size = 8),
-   #         legend.title= element_blank(),
-   #         plot.background=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   ylab("Photophore Diameter (mm/SL)")+
-   #   xlab("Species")+
-   #   scale_fill_manual(values = c("#e89f67", "#d95f02"))    
-   #   ggtitle("caudal Photophore Diameter")
-   
-   #Size frequency histogram - minute photophores, showing the distribution of minute photophore size for region 3
-   # caudal%>% 
-   #   filter(type == "minute")%>%
-   #   ggplot()+
-   #   #geom_density(aes(x=diameter_SL,), fill = "skyblue3", alpha = 0.9)+
-   #   geom_histogram(aes(x=diameter_SL),color = "black", fill ="skyblue3",bins=30, size = .3)+
-   #   facet_wrap(~species, scales = "free_y")+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         axis.title.y = element_text(size = 8),
-   #         axis.title.x = element_text(size = 8),
-   #         legend.title= element_blank(),
-   #         plot.background=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   xlab("Photophore Diameter (mm/SL)")+
-   #   ylab(element_blank())+
-   #   ggtitle("caudal minute photophore size distribution")
-   
-   ## Combined Region Size boxplot - plots all boxplot on a single chart - NOT FINAL TYPE DO NOT USE
-   
-   # photo%>%
-   #   filter(type == "minute")%>%
-   #   ggplot(aes(fill = region, x = species, y = diameter_SL))+
-   #   geom_boxplot(position = "dodge")+
-   #   theme(axis.text.x=element_text(angle = 90, color = "black"),
-   #         axis.text.y=element_text(color = "black"))+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         axis.title.y = element_text(size = 8),
-   #         axis.title.x = element_text(size = 8),
-   #         legend.title= element_blank(),
-   #         plot.background=element_blank(),
-   #         #panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   ylab("Photophore Diameter (mm/SL)")+
-   #   xlab("Species")+
-   #   scale_fill_manual(values = c("#7570b3", "#1b9e77",'#d95f02'))+
-   #   ggtitle("Minute Photophore Diameter")
-   # 
-   # ## Combined Density Size boxplot - plots all boxplot on a single chart - NOT FINAL TYPE DO NOT USE
-   # photo_summary%>%
-   #   filter(type == "minute")%>%
-   #   ggplot(aes(fill = region, x = species, y = density))+
-   #   geom_boxplot(position = "dodge")+
-   #   theme(axis.text.x=element_text(angle = 90, color = "black"),
-   #         axis.text.y=element_text(color = "black"))+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         axis.title.y = element_text(size = 8),
-   #         axis.title.x = element_text(size = 8),
-   #         legend.title= element_blank(),
-   #         plot.background=element_blank(),
-   #         #panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   ylab("Photophore Diameter (mm/SL)")+
-   #   xlab("Species")+
-   #   scale_fill_manual(values = c("#7570b3", "#1b9e77",'#d95f02'))+
-   #   ggtitle("Minute Photophore Density")
-   
-   #### ~Density ###
-   
-   # photo_summary%>% 
-   #   filter(type == "minute")%>%
-   #   filter(species %in% c("Mbar", "Pgue", "Pmic", "Sboa"))%>%
-   #   ggplot()+
-   #   geom_histogram(aes(x=density, fill = region, color = region), alpha =0.7, bins=15)+
-   #   facet_wrap(~species, scales = "free_y")+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6),
-   #         axis.text.y = element_text(size = 6),
-   #         plot.background=element_blank(),
-   #         panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank())+
-   #   xlab("Photophore Density")+
-   #   scale_fill_manual(values = c("#7570b3", "#1b9e77",'#d95f02'))+     ## Dark colors, rearranged - colorblind friendly
-   #   scale_color_manual(values = c("#7570b3", "#1b9e77",'#d95f02'))+
-   #   ggtitle("Minute Photophore Density by Region")
-   
-   ## density vs SL scatter plot facet wraped by photophore type
-   #   
-   # ggplot(data=photo_summary)+
-   #   geom_point(data = photo_summary, aes(x = avg_sizeSL, y = density,color = typereg), pch= 20)+
-   #   geom_smooth(method="lm", aes (x = avg_sizeSL, y = density))+
-   #   theme_bw()+
-   #   theme(axis.text.x = element_text(angle=90, size = 6, vjust=0.3),
-   #         axis.text.y = element_text(size = 6),
-   #         axis.title.y = element_text(size = 8),
-   #         axis.title.x = element_text(size = 8),
-   #         legend.title= element_blank(),
-   #         plot.background=element_blank(),
-   #         #panel.grid.major=element_blank(),
-   #         panel.grid.minor=element_blank(),
-   #         panel.border=element_blank(),
-   #         axis.line = element_line(),
-   #         #panel.grid.major.x = element_blank()
-   #          )+
-   #     ylab("Photophore Density (#/cm2)")+
-   #     xlab("Photophore Size (micron/mmSL")+
-   #     scale_color_manual(values= custom_cols(c("rostral.minute", "rostral.serial", "mid.minute", "mid.serial", "caudal.minute", "caudal.serial")))+ 
-   #     ggtitle("Photophore Density vs Size")+
-   #     facet_wrap(~type, scale = "free" )
-
-# test<-photo%>%
-#   select(-c("SL", "image_area", "x", "y", "direction", "catalog"))%>%
-#   gather(., key = variable, value = value, -species, -id, -specimen, -region, -type)%>%
-#   # filter(species %in% c("Mbar", "Pgue", "Pmic", "Sboa"))%>%                   #filter to include species with more than one region imaged
-#   # filter(!specimen %in% c("Pgue5", "Pmic1", "Sboa4"))%>%                         #remove specimens for which only one region has data
-#   filter(specimen == "Mbar4")%>%
-#   filter(variable == "angle")%>%
-#   #filter (!specimen %in% c("Mbarostral", "Mbamid", "Mbacaudal", "Pgue1"))               #FOR ANGLE DATA ONLY - filter out specimens with only one region analyzed - there is no data for mid in these specimens because image quality was poor...which is why caudal was analyzed instead...
-#   filter(!value=="NA")%>%                                                       #shapiro test will not work on angle because there are NA values so first have to remove the NAs 
-#   group_by(region)
-# 
-# #### Create boxplot visualizing differences between regions for each specimen with more than one region imaged ###
-# ggplot(test, aes(x=specimen, y=value, fill = region))+
-#   geom_boxplot()+
-#   facet_wrap(~specimen, scales = "free")+
-#   ggtitle("Photophore Angle - Region Comparison")
-# 
-# 
-# ###Run T test: compare minute to serial photophore
-# ##Size##
-# ## T test - minute vs. serial in each region
-# ###### *standard diameter 
-# temp<-photo%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter_SL","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))
-# p_all <-temp%>%                                                # build a dataframe so that all the regions will be in a single table - will rbind them with the results from rostral, mid, and caudal as tests are run
-#   mutate(region = "all")
-# 
-# 
-# #T test for all data for rostral
-# 
-# temp<-rostral%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter_SL","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "rostral")
-# 
-# p_all<-rbind(p_all, temp)
-# 
-# #T test for all mid data
-# 
-# temp<-mid%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter_SL","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "mid")
-# 
-# p_all<-rbind(p_all, temp)
-# 
-# #T test for all caudal data
-# temp<-caudal%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter_SL","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "caudal")
-# 
-# p_all<-rbind(p_all, temp)
-# 
-# write.xlsx(p_all, file = 'Photo_Stats.xls', sheetName = "mid_MvS_all_stand", row.names = F, append = T)
-# 
-# 
-# ###### *raw diameter 
-# temp<-photo%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))
-# p_all <-temp%>%                                                # build a dataframe so that all the regions will be in a single table - will rbind them with the results from rostral, mid, and caudal as tests are run
-#   mutate(region = "all")
-# 
-# 
-# #T test for all data for rostral
-# 
-# temp<-rostral%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "rostral")
-# 
-# p_all<-rbind(p_all, temp)
-# 
-# #T test for all mid data
-# 
-# temp<-mid%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "mid")
-# 
-# p_all<-rbind(p_all, temp)
-# 
-# #T test for all caudal data
-# temp<-caudal%>%                                                                                  
-#   select(c("species", "specimen", "SL", "diameter","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "caudal")
-# 
-# p_all<-rbind(p_all, temp)
-# 
-# write.xlsx(p_all, file = 'Photo_Stats.xls', sheetName = "mid_MvS_all", row.names = F, append = T)
-# 
-# 
-# 
-# 
-# 
-#  
-# ###### Density 
-# temp<-photo_summary%>%                                                                                  
-#   select(c("species", "specimen", "SL", "density","type","region"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type, -region)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))
-# p_dens_all <-temp%>%                                                # build a dataframe so that all the regions will be in a single table - will rbind them with the results from rostral, mid, and caudal as tests are run
-#   mutate(region = "all")
-# 
-# 
-# #T test for all data for rostral
-# 
-# temp<-rostral.summary%>%                                                                                  
-#   select(c("species", "specimen", "SL", "density","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "rostral")
-# 
-# p_dens_all<-rbind(p_dens_all, temp)
-# 
-# #T test for all mid data
-# 
-# temp<-mid.summary%>%                                                                                  
-#   select(c("species", "specimen", "SL", "density","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-# 
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "mid")
-# 
-# p_dens_all<-rbind(p_dens_all, temp)
-# 
-# #T test for all caudal data
-# temp<-caudal.summary%>%                                                                                  
-#   select(c("species", "specimen", "SL", "density","type"))%>%
-#   gather(., key = variable, value = value, -species, -specimen, -SL, -type)%>%
-#   group_by(species)%>%                                                                #still grouped as last df so that output is the same and dfs can get merged seemlessly
-#   filter(!species == "Pmic")%>%                                                       #removed Pmic bc not enough data to run Ttest (only 1 specimen)
-#   do(tidy(t.test(value~type,data =., paired=F, exact = F)))
-#  
-# temp<- temp%>%
-#   select(c("species", "p.value"))%>%                                          #remove columns with wierd attributes otherwise cannot coerce into dataframe
-#   as.data.frame()%>%
-#   ungroup()%>%
-#   #mutate_if(is.numeric, round, digits = 4)%>%
-#   mutate(Sig = case_when(p.value>0.05 ~"F",
-#                          p.value<0.05 ~"T"))%>%
-#   mutate(region = "caudal")
-# 
-# p_dens_all<-rbind(p_dens_all, temp)
-# 
-# write.csv(p_dens_all, file="photo_density_ttest.csv")
-# write.xlsx(p_all, file = 'Photo_Stats.xls', sheetName = "Density_MvS_all", row.names = F, append = T)
-# 
-# 
-# 
-# ### Density bar plots ##
-# 
-# #rostral Photophore Density bar plot
-# ggplot(rostral.summary, aes(fill = type, x = species, y = density))+
-#   geom_boxplot(position = "dodge")+
-#   theme(axis.text.x=element_text(angle = 90, color = "black"),
-#         axis.text.y=element_text(color = "black"))+
-#   theme_bw()+
-#   theme(axis.text.x = element_text(angle=90, size = 6),
-#         axis.text.y = element_text(size = 6),
-#         axis.title.y = element_text(size = 8),
-#         axis.title.x = element_text(size = 8),
-#         legend.title= element_blank(),
-#         plot.background=element_blank(),
-#         panel.grid.major=element_blank(),
-#         panel.grid.minor=element_blank())+
-#   ylim(0,7)+
-#   ylab("Photophore Density (#/mm2)")+
-#   xlab("Species")+
-#   scale_fill_manual(values=c("#ACA9D1","#7570b3" ))+
-#   ggtitle("rostral Photophore Density")
-# 
-# #mid Photophore density bar plot
-# ggplot(mid.summary, aes(fill = type, x = species, y = density))+
-#   geom_boxplot(position = "dodge")+
-#   theme(axis.text.x=element_text(angle = 90, color = "black"),
-#         axis.text.y=element_text(color = "black"))+
-#   theme_bw()+
-#   theme(axis.text.x = element_text(angle=90, size = 6),
-#         axis.text.y = element_text(size = 6),
-#         axis.title.y = element_text(size = 8),
-#         axis.title.x = element_text(size = 8),
-#         legend.title= element_blank(),
-#         plot.background=element_blank(),
-#         panel.grid.major=element_blank(),
-#         panel.grid.minor=element_blank())+
-#   ylim(0,7)+
-#   ylab("Photophore Density (#/mm2)")+
-#   xlab("Species")+
-#   scale_fill_manual(values=c("#76C5AD", "#1b9e77"))+
-#   ggtitle("mid Photophore Density")
-# 
-#  #caudal photphore density
-#   ggplot(caudal.summary, aes(fill = type, x = species, y = density))+
-#   geom_boxplot(position = "dodge")+
-#   theme(axis.text.x=element_text(angle = 90, color = "black"),
-#         axis.text.y=element_text(color = "black"))+
-#   theme_bw()+
-#   theme(axis.text.x = element_text(angle=90, size = 6),
-#         axis.text.y = element_text(size = 6),
-#         axis.title.y = element_text(size = 8),
-#         axis.title.x = element_text(size = 8),
-#         legend.title= element_blank(),
-#         plot.background=element_blank(),
-#         panel.grid.major=element_blank(),
-#         panel.grid.minor=element_blank())+
-#   ylim(0,7)+
-#   ylab("Photophore Density (#/mm2)")+
-#   xlab("Species")+
-#   scale_fill_manual(values = c("#e89f67", "#d95f02"))+    
-# #scale_fill_manual(values=c("skyblue3", "skyblue4"))+
-# ggtitle("caudal Photophore Density")
-
+   #Build area graphs
+     c<-photo_summary%>%
+       filter(species == "Pgue")%>%
+       ggplot(aes(fill = type, x = species, y = photo_area_mmSL_tot))+ 
+       geom_boxplot(position = "dodge")+ 
+       custom_theme_box()+ 
+       theme(axis.text.x=element_blank(),axis.text.y=element_text(color = "black"))+ 
+       ylab("Photophore Area (mm²/mmSL)")+ #\u00b2 is unicode text for squared symbol
+       scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+       #scale_fill_manual(values = c("#d95f02", "#1b9e77"))+ #colorblind friendly
+       xlab(element_blank())+ 
+       facet_rep_wrap(~region, repeat.tick.labels = T, nrow = 1, drop = T)+
+       theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+     
+     #Build orientation graphs
+     d<-photo%>%
+       filter(species == "Pgue")%>%
+       ggplot()+
+       geom_point(aes(x=diameter_SL,y=angle, fill = type), size=1.8, pch=21, color = "black")+
+       custom_theme_polar()+
+       xlab("Photophore Diameter (\u00b5m/mm SL)")+
+       ylab(element_blank())+
+       scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
+       scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+       #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
+       coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation
+       #geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8)+ #plot a line showing average photophore size of each type
+       geom_hline(data = vline_temp, aes (yintercept = avg_angle, linetype = type), size = .75, alpha = 0.7)+ #plot a line showing average orientation for each photohpore type
+       scale_linetype_manual(values=c("dotted", "solid"))+                        
+       facet_wrap(~region,ncol=3)+  
+       theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+  
+     patch<- (b/c) /d   
+#combine all 4 plots
+    (a+patch)/(plot_spacer()+d)+ plot_layout(guides = "collect", widths = c(2,1), heights = c(2,1)) + plot_annotation(tag_levels = "A") #collect combines axes and/or legend (guides)
+     
+ #(a+b)/(d+c)+plot_layout(guides = "collect", widths = c(2,1), heights = c(1,1))
+     #Save plot   
+     ggsave("Figure10.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(9,"in"))   
+     
+ #Figure ___ New supplemental??
+   # Make boxblot to compare the total area of photophores within mid region
+  a <- ggplot2::ggplot(mid_summary, aes(fill = type, x = species, y = photo_area_mmSL_tot))+ 
+    geom_boxplot(position = "dodge")+ 
+    theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
+    custom_theme_box()+ 
+    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
+    ylab("Photophore Area (mm²/mmSL)")+ #\u00b5 is unicode text for mu symbol
+    xlab(element_blank())+ 
+    scale_fill_manual(values= c("#929292","#EBEBEB"))
+  
+  b <- ggplot2::ggplot(rostral_summary, aes(fill = type, x = species, y = photo_area_mmSL_tot))+ 
+    geom_boxplot(position = "dodge")+ 
+    theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
+    custom_theme_box()+ 
+    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
+    ylab("Photophore Area (mm²/mmSL)")+ #\u00b5 is unicode text for mu symbol
+    xlab(element_blank())+ 
+    scale_fill_manual(values= c("#929292","#EBEBEB"))
+  
+  c <- ggplot2::ggplot(caudal_summary, aes(fill = type, x = species, y = photo_area_mmSL_tot))+ 
+    geom_boxplot(position = "dodge")+ 
+    theme(axis.text.x=element_text(angle = 90, color = "black"),axis.text.y=element_text(color = "black"))+ 
+    custom_theme_box()+ 
+    coord_capped_cart(bottom = brackets_horizontal(length = unit (0.03, "npc")), left = "none") +   #use lemon package to make brackets instead of tick marks on x axis
+    ylab("Photophore Area (mm²/mmSL)")+ #\u00b5 is unicode text for mu symbol
+    xlab(element_blank())+ 
+    scale_fill_manual(values= c("#929292","#EBEBEB"))
+  
+a/ (b+c) + plot_layout(guides = "collect", heights = 1, widths = c(1,2)) + #use patchwork package to arrange parts of plot.
+    plot_annotation(tag_levels = "A") #collect combines axes and/or legend (guides)
+    
+  
+  ggsave("PhotoArea.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
