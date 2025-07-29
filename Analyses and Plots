@@ -12,7 +12,6 @@ if(!require('ggplot2'))install.packages('ggplot2'); library('ggplot2')
 if(!require('tidyverse'))install.packages('tidyverse'); library('tidyverse') 
 if(!require('broom'))install.packages('broom'); library('broom')
 if(!require('xlsx'))install.packages('xlsx'); library('xlsx')
-#if(!require("wesanderson"))install.packages('wesanderson');library("wesanderson")
 if(!require("lemon"))install.packages("lemon"); library("lemon")
 if(!require("ggpubr"))install.packages("ggpubr"); library("ggpubr")
 if(!require("gridExtra"))install.packages("gridExtra"); library("gridExtra")
@@ -21,7 +20,7 @@ if(!require("RColorBrewer"))install.packages("RColorBrewer"); library("RColorBre
 
 ### Read in .csv ####
 
-photo<-read.csv("photophore_clean-NSU.csv", col.names = (c("species", "specimen","id", "region", "catalog", "SL", "image_area", "x","y","direction", "diameter", "angle", "type", "diameter_SL")))%>%
+photo<-read.csv("Stomiiform_Photophore_Dat_20250729.csv", col.names = (c("species", "specimen","id", "region", "catalog", "SL", "image_area", "x","y","direction", "diameter", "angle", "type", "diameter_SL")))%>%
   mutate(species = as.factor(species), 
          specimen = as.factor(specimen), 
          id = as.factor(paste0(specimen,"_", region)), 
