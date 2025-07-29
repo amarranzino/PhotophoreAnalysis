@@ -524,7 +524,7 @@ rostral_summary <- rostral%>%
   a/ b/c + plot_layout(guides = "collect", heights = 1) + plot_annotation(tag_levels = "A") #collect combines axes and/or legend (guides)
   
   #Save plot as 2 panel figure  
-  ggsave("Figure7.pdf",last_plot(),dpi=300,height = unit(9.5,"in"),width = unit(7.3,"in"))
+  ggsave("Figure7.pdf",last_plot(),dpi=300,height = unit(9.5,"in"),width = unit(3.6,"in"))
   
   
 ##Figure 8 - Size frequency distribution of photophores in representative species
@@ -574,14 +574,14 @@ rostral_summary <- rostral%>%
     #greyscale
    #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
     coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation
-    #geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8)+ #plot a line showing average photophore size of each type
+    #geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8, alpha = 0.6)+ #plot a line showing average photophore size of each type
     #geom_hline(data = vline_temp, aes (yintercept = avg_angle, linetype = type), size = .75, alpha = 0.9)+ #plot a line showing average orientation for each photohpore type
     scale_linetype_manual(values=c("dotted", "solid"))+                        
     facet_wrap(~species,ncol=3)+  
     theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
   
   #Save plot   
-  ggsave("Figure9.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
+  ggsave("Figure9_optB.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
   
   
 #Figure 10: Photostomias guernei
