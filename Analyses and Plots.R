@@ -562,26 +562,29 @@ rostral_summary <- rostral%>%
   
  a<- photo%>%
     filter(region == "mid")%>%
+   mutate(type = fct_relevel(type, "serial"))%>%
     ggplot()+
-   geom_rect(data = vline_temp, aes(xmin=0, xmax = 7, ymin = min_angle, ymax = max_angle, fill = type), alpha =0.5, inherit.aes = F, color = "#929292")+ #add shading for min/max angle
-    scale_fill_manual(values= c("#929292","#EBEBEB"))+
+   geom_rect(data = vline_temp, aes(xmin=0, xmax = 7, ymin = min_angle, ymax = max_angle, fill = type, color = type), alpha =0.5, inherit.aes = F, linewidth = 0.1)+ #add shading for min/max angle
+    scale_fill_manual(values= c("#3D3D3D","#EBEBEB"))+
+   scale_color_manual(values = c("#3d3d3d80", "#ebebeb80"))+
     geom_point(aes(x=diameter_SL,y=angle, fill = type), size=1.8, pch=21, color = "black")+
-   geom_segment(data = vline_temp, aes (x = 0, xend = 7, y = avg_angle, yend= avg_angle, linetype = type), arrow = arrow(length = unit (0.2, "cm"), type = "open"), size = 0.9, inherit.aes = F)+
+   geom_segment(data = vline_temp, aes (x = 0, xend = 7, y = avg_angle, yend= avg_angle, linetype = type), size = .8, inherit.aes = F)+
     custom_theme_polar()+
+   theme (panel.grid.minor = element_line (linewidth = .2), panel.grid.major = element_line (linewidth = .5))+
     xlab("Photophore Diameter (\u00b5m/mm SL)")+
     ylab(element_blank())+
     scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
     #greyscale
    #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
     coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation
-    #geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8, alpha = 0.6)+ #plot a line showing average photophore size of each type
+    geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .5, alpha = 0.6)+ #plot a line showing average photophore size of each type
     #geom_hline(data = vline_temp, aes (yintercept = avg_angle, linetype = type), size = .75, alpha = 0.9)+ #plot a line showing average orientation for each photohpore type
-    scale_linetype_manual(values=c("dotted", "solid"))+                        
+    scale_linetype_manual(values=c("dashed", "solid"))+                        
     facet_wrap(~species,ncol=3)+  
     theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
   
   #Save plot   
-  ggsave("Figure9_optB.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
+  ggsave("Figure9.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(6.5,"in"))
   
   
 #Figure 10: Photostomias guernei
@@ -607,13 +610,17 @@ rostral_summary <- rostral%>%
     ylab("Number of Photophores")+
     geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8)+
     scale_linetype_manual(values=c("dotted", "solid"))+
-    facet_rep_wrap(~region, repeat.tick.labels = T, ncol = 1, drop = T)+
-    theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+    facet_rep_wrap(~region, repeat.tick.labels = T, ncol = 3, drop = T)+
+    theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom", strip.text = element_text(size = 8))+
+    guides(fill = "none")+ #turns off legend
+    theme(legend.position = "none") #turns off legend
+  
+  ggsave("Figure10b.pdf",last_plot(),dpi=300,height = unit(2.3,"in"),width = unit(3.65,"in"))
 
   #Build density graphs
     b<-photo_summary%>%
     filter(species == "Pgue")%>%
-    ggplot(aes(fill = type, x = species, y = density))+ 
+    ggplot(aes(fill = type, x = type, y = density))+ 
     geom_boxplot(position = "dodge")+ 
     custom_theme_box()+ 
     theme(axis.text.x=element_blank(),axis.text.y=element_text(color = "black"))+ 
@@ -621,50 +628,64 @@ rostral_summary <- rostral%>%
     scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
     #scale_fill_manual(values = c("#d95f02", "#1b9e77"))+ #colorblind friendly
     xlab(element_blank())+ 
-    facet_rep_wrap(~region, repeat.tick.labels = T, nrow = 1, drop = T)+
-    theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+      facet_rep_wrap(~region, repeat.tick.labels = T, ncol = 3, drop = T)+
+      theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom", strip.text = element_text(size = 8))+
+      guides(fill = "none")+ #turns off legend
+      theme(legend.position = "none") #turns off legend
+    
+    ggsave("Figure10c.pdf",last_plot(),dpi=300,height = unit(2.117,"in"),width = unit(2.55,"in"))
 
    #Build area graphs
      c<-photo_summary%>%
        filter(species == "Pgue")%>%
-       ggplot(aes(fill = type, x = species, y = photo_area_mmSL_tot))+ 
+       ggplot(aes(fill = type, x = type, y = photo_area_mmSL_tot))+ 
        geom_boxplot(position = "dodge")+ 
        custom_theme_box()+ 
        theme(axis.text.x=element_blank(),axis.text.y=element_text(color = "black"))+ 
-       ylab("Photophore Area \n (mm²/mmSL)")+ #\u00b2 is unicode text for squared symbol
+       ylab("Photophore Area (mm²/mmSL)")+ #\u00b2 is unicode text for squared symbol
        scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
        #scale_fill_manual(values = c("#d95f02", "#1b9e77"))+ #colorblind friendly
        xlab(element_blank())+ 
-       facet_rep_wrap(~region, repeat.tick.labels = T, nrow = 1, drop = T)+
-       theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+       facet_rep_wrap(~region, repeat.tick.labels = T, ncol = 3, drop = T)+
+       theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom", strip.text = element_text(size = 8))+
+       guides(fill = "none")+ #turns off legend
+       theme(legend.position = "none") #turns off legend
+     ggsave("Figure10e.pdf",last_plot(),dpi=300,height = unit(2.117,"in"),width = unit(2.67,"in"))
      
      #Build orientation graphs
      d<-photo%>%
        filter(species == "Pgue")%>%
        ggplot()+
+       geom_rect(data = vline_temp, aes(xmin=0, xmax = 4, ymin = min_angle, ymax = max_angle, fill = type), alpha =0.5, inherit.aes = F, color = "#929292")+ #add shading for min/max angle
+       scale_fill_manual(values= c("#3D3D3D","#EBEBEB"))+
        geom_point(aes(x=diameter_SL,y=angle, fill = type), size=1.8, pch=21, color = "black")+
+       geom_segment(data = vline_temp, aes (x = 0, xend = 3.99, y = avg_angle, yend= avg_angle, linetype = type), arrow = arrow(length = unit (0.2, "cm"), type = "open"), size = .8, inherit.aes = F)+
        custom_theme_polar()+
-       xlab("Photophore Diameter \n (\u00b5m/mm SL)")+
+       #xlab("Photophore Diameter \n (\u00b5m/mm SL)")+
+       xlab(element_blank())+
        ylab(element_blank())+
        scale_y_continuous(breaks = c(-90,0,90,180), limits = c(-180,180))+
-       scale_fill_manual(values= c("#929292","#EBEBEB"))+ #greyscale
+       #greyscale
        #scale_fill_manual(values = c("#d95f02", "#1b9e77")) #colorblind friendly
        coord_polar(theta = "y", start = -55, direction = -1)+                      # plots as a radial plot - theta plots y (orientation) along the axis and leaves X as radials, start fiddled with to get proper orientation
-       #geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .8)+ #plot a line showing average photophore size of each type
-       geom_hline(data = vline_temp, aes (yintercept = avg_angle, linetype = type), size = .75, alpha = 0.7)+ #plot a line showing average orientation for each photohpore type
-       scale_linetype_manual(values=c("dotted", "solid"))+                        
+       geom_vline(data = vline_temp, aes (xintercept = avg_sizeSL, linetype = type), size = .5, alpha = 0.6)+ #plot a line showing average photophore size of each type
+       #geom_hline(data = vline_temp, aes (yintercept = avg_angle, linetype = type), size = .75, alpha = 0.9)+ #plot a line showing average orientation for each photohpore type
+       scale_linetype_manual(values=c("dashed", "solid"))+                        
        facet_wrap(~region,ncol=3)+  
-       theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom")
+       theme(strip.background = element_rect(color = "black", fill = "white"), legend.position = "bottom", strip.text = element_text(size = 8))+
+       guides(fill = "none")+ #turns off legend
+       theme(legend.position = "none") #turns off legend
+     ggsave("Figure10d.pdf",last_plot(),dpi=300,height = unit(2.3,"in"),width = unit(3.7,"in"))
   
      patch<- (b/c) /d   
 #combine all 4 plots
      
-     
+      (a + b) / (plot_spacer() + c) + plot_layout(guides = "collect", widths = c(2,1))
     (a+patch)/ (d+plot_spacer())+ plot_layout(guides = "collect", widths = unit(c(3.7, 2.2), c('in', 'in')), heights = c(2,1)) + plot_annotation(tag_levels = "A") #collect combines axes and/or legend (guides)
      
- #(a+b)/(d+c)+plot_layout(guides = "collect", widths = c(2,1), heights = c(1,1))
+ (a+b)/(d+c)+plot_layout(guides = "collect", widths = c(2,1), heights = c(1,1))
      #Save plot   
-     ggsave("Figure10.pdf",last_plot(),dpi=300,height = unit(6.7,"in"),width = unit(9,"in"))   
+     ggsave("Figure10.pdf",last_plot(),dpi=300,height = unit(4.4,"in"),width = unit(6.5,"in"))   
      
  #Figure ___ New supplemental??
    # Make boxblot to compare the total area of photophores within mid region
