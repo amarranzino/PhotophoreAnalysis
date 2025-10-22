@@ -1,22 +1,27 @@
-# PhotophoreAnalysis
+# PhotophoreAnalysis 
 
-## Author: Ashley Marranzino 
-## Last modified: 2025-08-01
+### Author: Ashley Marranzino 
+### Last modified: 2025-08-01
+
+## Summary:
+This repository contains the data and R code used for the analyses presented in Marranzino, **A.N. and J.F. Webb** (in press). Photophores in Stomiiform Fishes: Morphology, Distribution, and Putative Behavioral Roles. *The Biological Bulletin*. <br/>
+
 
 ## Data Description:
 R script written for analyzing photophore size and distribution patterns in different species. <br/>
 
-All raw data used for these analyses are based on measurements of photophores derived from images of preserved specimens. Raw images and individual measurments for each specimen are found in the "Photophore Size Data Files". Measurments were made using ImageJ Software. <br/>
+All raw data used for these analyses are based on measurements of photophores derived from images of preserved specimens. Raw images and individual measurments for each specimen are found in the **Photophore Size Data Files**. Measurments were made using ImageJ Software. <br/>
 
-Raw measurment data for all specimnes examined is found in the file "Stomiiform_Photophore_Dat_20250729.csv". <br/>
+Raw measurment data for all specimnes examined is found in the file **Stomiiform_Photophore_Dat_20250729.csv**. <br/>
 
-The R script used to generate summary statistics and data visualizations is found in the "Photophore_AnalysesandPlots.R" file. <br/>
+The R script used to generate summary statistics and data visualizations is found in the **Photophore_AnalysesandPlots.R** file. <br/>
 
-The R script generates summary data, including summaries of values grouped by specimen, species, and region. These values are exported into an excel file "Photo_Data.xls". Each tab contains the following information:
+The R script generates an Excel file containing all summary dataframes, including summaries of values grouped by specimen, species, and region. These data can be found in the **Photo_Data.xls** file. Summary of the fields contained in each dataframe are found below. 
 
-## **Tab:** Summary_lumped
-### **Summary:** A dataframe summarizing data for a single specimen, grouped by region. Export of the dataframe "summary" from the "Photophore_AnalysesandPlots.R" file.
-### **Fields:**
+#### **Tab:** Summary_lumped
+#### **Summary:** 
+A dataframe summarizing data for a single specimen, grouped by region. Export of the dataframe *summary* from the **Photophore_AnalysesandPlots.R** file.
+#### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **specimen:** specimen identifier. Formatted as the 4 letter species name (as specified above) followed by the 1 digit specimen number (ex: Anig1)
 - **region:** body region in which the data was collected, either "rostral" (just caudal to the anterior insertion of the pectoral fin), "mid" (midway along the rostral-cuadal axis of the trunk rostral to the insterion of the pelvic fin), or "caudal (at the anterior insertion of the anal fin). 
@@ -38,9 +43,10 @@ The R script generates summary data, including summaries of values grouped by sp
 - **photo_area_mmSL_tot:** the sum of the areas of all photophores standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 - **density:** the density of photophores. Calculated as the number of photophores (n) divided by imaged_area. Reported as number of photophores/cm2
 
-## **Tab:** Photo_sum
-### **Summary:** A dataframe summarizing data for a single specimen, grouped  by region and type of photohpore. Export of the dataframe "photo_summary" in the "Photophore_AnalysesandPlots.R" file. 
-### **Fields:**
+#### **Tab:** Photo_sum
+#### **Summary:** 
+A dataframe summarizing data for a single specimen, grouped  by region and type of photohpore. Export of the dataframe *photo_summary* in the **Photophore_AnalysesandPlots.R** file. 
+#### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **specimen:** specimen identifier. Formatted as the 4 letter species name (as specified above) followed by the 1 digit specimen number (ex: Anig1)
 - **region:** body region in which the data was collected, either "rostral" (just caudal to the anterior insertion of the pectoral fin), "mid" (midway along the rostral-cuadal axis of the trunk rostral to the insterion of the pelvic fin), or "caudal (at the anterior insertion of the anal fin). 
@@ -66,9 +72,10 @@ The R script generates summary data, including summaries of values grouped by sp
 - **photo_area_mmSL_tot:** the sum of the areas of photophores of a given type within a given region standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 - **density:** the density of photophores of a given type within a given region. Calculated as the number of photophores (n) divided by imaged_area. Reported as number of photophores/cm2
 
-## **Tab:** Spp_summary
-### **Summary:** A dataframe summarizing data for each species, grouped  by region. Export of the dataframe "spp_sum" in the "Photophore_AnalysesandPlots.R" file. 
-### **Fields:**
+#### **Tab:** Spp_summary
+#### **Summary:** 
+A dataframe summarizing data for each species, grouped  by region. Export of the dataframe *spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+#### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **region:** body region in which the data was collected, either "rostral" (just caudal to the anterior insertion of the pectoral fin), "mid" (midway along the rostral-cuadal axis of the trunk rostral to the insterion of the pelvic fin), or "caudal (at the anterior insertion of the anal fin). 
 - **n:** number of specimens analyzed for each species
@@ -101,9 +108,10 @@ The R script generates summary data, including summaries of values grouped by sp
 - **max_photo_area_mm2_tot:** the maximum of total area (sum of the areas of photophores within a given region for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 - **sd_photo_area_mm2_tot:** the standard deviation of total areas (sum of the areas of photophores within a given region for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 
-## **Tab:** PhotoSpp_summary
-### **Summary:** A dataframe summarizing data for each species, grouped  by region and photophore type. Export of the dataframe "photo_spp_sum" in the "Photophore_AnalysesandPlots.R" file. 
-### **Fields:**
+#### **Tab:** PhotoSpp_summary
+#### **Summary:** 
+A dataframe summarizing data for each species, grouped  by region and photophore type. Export of the dataframe *photo_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+#### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **typereg:** denotes the type of photophore ("serial" or "minute") and which region the photophore is located ("rostral", "mid", or "caudal"). Formatted as "region.type" (example: "mid.serial")
 - **region:** body region in which the data was collected, either "rostral" (just caudal to the anterior insertion of the pectoral fin), "mid" (midway along the rostral-cuadal axis of the trunk rostral to the insterion of the pelvic fin), or "caudal (at the anterior insertion of the anal fin). 
@@ -138,9 +146,10 @@ The R script generates summary data, including summaries of values grouped by sp
 - **max_photo_area_mm2_tot:** the maximum of total area (sum of the areas of photophores for a given type, within a given region, for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 - **sd_photo_area_mm2_tot:** the standard deviation of total areas (sum of the areas of photophores for a given type, within a given region, for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 
-## **Tab:** rostral_spp_type_summary
-### **Summary:** A dataframe summarizing data for the rostral region, grouping data by species and type of photophore. Export of the dataframe "rostral_spp_sum" in the "Photophore_AnalysesandPlots.R" file. 
-### **Fields:**
+#### **Tab:** rostral_spp_type_summary
+#### **Summary:** 
+A dataframe summarizing data for the rostral region, grouping data by species and type of photophore. Export of the dataframe *rostral_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+#### **Fields:**
 -  **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Pgue = Photostomias guernei; Sboa = Stomias boa ferox
 - **type:** photophore type, either "serial" or "minute"
 - **n:** number of specimens analyzed for each species within the rostral region
@@ -157,9 +166,10 @@ The R script generates summary data, including summaries of values grouped by sp
 - **avg_photo_area_mm2_tot:** the mean of total area (sum of the areas of photophores of a given type within the rostral region for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 - **sd_photo_area_mm2_tot:** the standard deviation of total areas (sum of the areas of photophores of a given type within the rostral region for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 
-## **Tab:** mid_spp_type_summary
-### **Summary:** A dataframe summarizing data for the mid region, grouping data by species and type of photophore. Export of the dataframe "mid_spp_sum" in the "Photophore_AnalysesandPlots.R" file. 
-### **Fields:**
+#### **Tab:** mid_spp_type_summary
+#### **Summary:** 
+A dataframe summarizing data for the mid region, grouping data by species and type of photophore. Export of the dataframe *mid_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+#### **Fields:**
 -  **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **type:** photophore type, either "serial" or "minute"
 - **n:** number of specimens analyzed for each species within the mid region
@@ -176,9 +186,10 @@ The R script generates summary data, including summaries of values grouped by sp
 - **avg_photo_area_mm2_tot:** the mean of total area (sum of the areas of photophores of a given type within the mid region for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 - **sd_photo_area_mm2_tot:** the standard deviation of total areas (sum of the areas of photophores of a given type within the mid region for a given species) occupied by photophores, standardized for fish size. Calculated by dividing photophore area by the standard length of the specimen. Reported as mm2/mm - average area of photophores (in mm2), standardized by fish SL (in mm)
 
-## **Tab:** caudal_spp_type_summary
-### **Summary:** A dataframe summarizing data for the caudal region, grouping data by species and type of photophore. Export of the dataframe "caudal_spp_sum" in the "Photophore_AnalysesandPlots.R" file. 
-### **Fields:**
+#### **Tab:** caudal_spp_type_summary
+#### **Summary:** 
+A dataframe summarizing data for the caudal region, grouping data by species and type of photophore. Export of the dataframe *caudal_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+#### **Fields:**
 -  **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Mbar = Melanostomias bartonbeani; Pmic = Pachystomias microdon; Pgue = Photostomias guernei
 
 - **type:** photophore type, either "serial" or "minute"
