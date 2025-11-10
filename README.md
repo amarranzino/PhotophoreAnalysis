@@ -10,17 +10,15 @@ This repository contains the data and R code used for the analyses presented in 
 ## Data Description:
 R script written for analyzing photophore size and distribution patterns in different species. <br/>
 
-All raw data used for these analyses are based on measurements of photophores derived from images of preserved specimens. Raw images and individual measurments for each specimen are found in the **Photophore Size Data Files**. Measurments were made using ImageJ Software. <br/>
+All raw data used for these analyses are based on measurements of photophores derived from images of preserved specimens. Raw images and individual measurments for each specimen are found in the [**Stomiiform_Photophore_Dat_20250729.csv**](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Data/Stomiiform_Photophore_Dat_20250729.csv). Measurments were made using ImageJ Software. <br/>
 
-Raw measurment data for all specimnes examined is found in the file **Stomiiform_Photophore_Dat_20250729.csv**. <br/>
+The R script used to generate summary statistics and data visualizations is found in the [**Photophore_AnalysesandPlots.R**](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file. <br/>
 
-The R script used to generate summary statistics and data visualizations is found in the **Photophore_AnalysesandPlots.R** file. <br/>
-
-The R script generates an Excel file containing all summary dataframes, including summaries of values grouped by specimen, species, and region. These data can be found in the **Photo_Data.xls** file. Summary of the fields contained in each dataframe are found below. 
+The R script generates an Excel file containing all summary dataframes, including summaries of values grouped by specimen, species, and region. These data can be found in the [**Photo_Data.xls**](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Data/Photo_Data.xls) file. Summary of the fields contained in each dataframe are found below:
 
 #### **Tab:** Summary_lumped
 #### **Summary:** 
-A dataframe summarizing data for a single specimen, grouped by region. Export of the dataframe *summary* from the **Photophore_AnalysesandPlots.R** file.
+A dataframe summarizing data for a single specimen, grouped by region. Export of the dataframe *summary* from the [Photophore_AnalysesandPlots.R](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file.
 #### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **specimen:** specimen identifier. Formatted as the 4 letter species name (as specified above) followed by the 1 digit specimen number (ex: Anig1)
@@ -45,7 +43,7 @@ A dataframe summarizing data for a single specimen, grouped by region. Export of
 
 #### **Tab:** Photo_sum
 #### **Summary:** 
-A dataframe summarizing data for a single specimen, grouped  by region and type of photohpore. Export of the dataframe *photo_summary* in the **Photophore_AnalysesandPlots.R** file. 
+A dataframe summarizing data for a single specimen, grouped  by region and type of photohpore. Export of the dataframe *photo_summary* from the [Photophore_AnalysesandPlots.R](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file. 
 #### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **specimen:** specimen identifier. Formatted as the 4 letter species name (as specified above) followed by the 1 digit specimen number (ex: Anig1)
@@ -74,7 +72,7 @@ A dataframe summarizing data for a single specimen, grouped  by region and type 
 
 #### **Tab:** Spp_summary
 #### **Summary:** 
-A dataframe summarizing data for each species, grouped  by region. Export of the dataframe *spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+A dataframe summarizing data for each species, grouped  by region. Export of the dataframe *spp_sum* in the from the [Photophore_AnalysesandPlots.R](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file. 
 #### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **region:** body region in which the data was collected, either "rostral" (just caudal to the anterior insertion of the pectoral fin), "mid" (midway along the rostral-cuadal axis of the trunk rostral to the insterion of the pelvic fin), or "caudal (at the anterior insertion of the anal fin). 
@@ -110,7 +108,7 @@ A dataframe summarizing data for each species, grouped  by region. Export of the
 
 #### **Tab:** PhotoSpp_summary
 #### **Summary:** 
-A dataframe summarizing data for each species, grouped  by region and photophore type. Export of the dataframe *photo_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+A dataframe summarizing data for each species, grouped  by region and photophore type. Export of the dataframe *photo_spp_sum* from the [Photophore_AnalysesandPlots.R](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file.
 #### **Fields:**
 - **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **typereg:** denotes the type of photophore ("serial" or "minute") and which region the photophore is located ("rostral", "mid", or "caudal"). Formatted as "region.type" (example: "mid.serial")
@@ -148,7 +146,7 @@ A dataframe summarizing data for each species, grouped  by region and photophore
 
 #### **Tab:** rostral_spp_type_summary
 #### **Summary:** 
-A dataframe summarizing data for the rostral region, grouping data by species and type of photophore. Export of the dataframe *rostral_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+A dataframe summarizing data for the rostral region, grouping data by species and type of photophore. Export of the dataframe *rostral_spp_sum* from the [Photophore_AnalysesandPlots.R](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file.
 #### **Fields:**
 -  **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Pgue = Photostomias guernei; Sboa = Stomias boa ferox
 - **type:** photophore type, either "serial" or "minute"
@@ -168,7 +166,7 @@ A dataframe summarizing data for the rostral region, grouping data by species an
 
 #### **Tab:** mid_spp_type_summary
 #### **Summary:** 
-A dataframe summarizing data for the mid region, grouping data by species and type of photophore. Export of the dataframe *mid_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+A dataframe summarizing data for the mid region, grouping data by species and type of photophore. Export of the dataframe *mid_spp_sum* from the [Photophore_AnalysesandPlots.R](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file.
 #### **Fields:**
 -  **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Anig = Astronesthes niger; Bmet = Bathophilus metallicus; Cslo = Chauliodus sloani; Cpli = Chirostomias pliopterus; Ebar = Echiostoma barbatum; Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Lgla = Leptostomias gladiator; Mbar = Melanostomias bartonbeani; Ncap - Neonsethes capensis; Pmic = Pachystomias microdon; Pgue = Photostomias guernei; Sboa = Stomias boa ferox; Tden = Thysanactis dentex  
 - **type:** photophore type, either "serial" or "minute"
@@ -188,7 +186,7 @@ A dataframe summarizing data for the mid region, grouping data by species and ty
 
 #### **Tab:** caudal_spp_type_summary
 #### **Summary:** 
-A dataframe summarizing data for the caudal region, grouping data by species and type of photophore. Export of the dataframe *caudal_spp_sum* in the **Photophore_AnalysesandPlots.R** file. 
+A dataframe summarizing data for the caudal region, grouping data by species and type of photophore. Export of the dataframe *caudal_spp_sum* from the [Photophore_AnalysesandPlots.R](https://github.com/amarranzino/PhotophoreAnalysis/blob/main/Photophore_AnalysesandPlots.R) file.
 #### **Fields:**
 -  **species:** species, abbreviated with first letter of Genus and first 3 letters of species epithet. Species are abbreviated as follows: Fbou = Flagellostomias boureei; Ifas = Idiacanthus fasciola; Mbar = Melanostomias bartonbeani; Pmic = Pachystomias microdon; Pgue = Photostomias guernei
 
