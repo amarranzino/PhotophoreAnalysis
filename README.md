@@ -4,7 +4,7 @@
 ### Last modified: 2025-08-01
 
 ## Summary:
-This repository contains the data and R code used for the analyses presented in Marranzino, **A.N. and J.F. Webb** (in press). Photophores in Stomiiform Fishes: Morphology, Distribution, and Putative Behavioral Roles. *The Biological Bulletin*. <br/>
+This repository contains the data and R code used for the analyses presented in Marranzino, **A.N. and J.F. Webb** (2025). Photophores in Stomiiform Fishes: Morphology, Distribution, and Putative Behavioral Roles. *The Biological Bulletin*. [https://doi.org/10.1086/738399](https://doi.org/10.1086/738399).  <br/>
 
 
 ## Data Description:
